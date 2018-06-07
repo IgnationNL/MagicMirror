@@ -1,0 +1,12 @@
+{
+  "name": "qrcodescanner",
+  "version": "1.0.0",
+  "description": "QRCodeScanner module for Magic Mirror",
+  "homepage": "https://ignation.io",
+  "dependencies": {
+    "fs": "latest",
+    "jimp": "latest",
+    "qrcode-reader": "latest",
+    "require": "latest"
+  }
+}
