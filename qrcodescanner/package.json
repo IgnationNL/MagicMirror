@@ -7,6 +7,6 @@
     "fs": "latest",
     "jimp": "latest",
     "qrcode-reader": "latest",
-    "require": "latest"
+    "vcard-parser": "latest"
   }
 }
