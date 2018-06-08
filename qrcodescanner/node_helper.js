@@ -8,6 +8,17 @@
  var fs    				= require("fs");
  var Jimp 				= require("jimp");
  var QrCode 			= require('qrcode-reader');
+ const RaspiCam 	= require("raspicam");
+ const Raspistill = require('node-raspistill').Raspistill;
+ const camera = new Raspistill({
+     outputDir: __dirname,
+     fileName: 'image',
+     encoding: 'jpg',
+     verticalFlip: true,
+     noPreview: true,
+     width: 500,
+     height: 680
+ });
 
 module.exports = NodeHelper.create({
 	// Override start method.
@@ -20,30 +31,50 @@ module.exports = NodeHelper.create({
 
 		if (notification === "SCAN_QR_CODE") {
 			// 1. Take picture
+			camera.takePhoto().then((photo) => {
 
-			// 2. Scan picture for QR codes
-			var buffer = fs.readFileSync(__dirname + '/image.png');
-			var self = this;
-			Jimp.read(buffer, function(err, image) {
+			    console.log('picture: ', photo)
 
-				var self2 = self; // Asign this/self so we can reference to this class inside the callback.
+					// Start QRCode decode
+					// 2. Scan picture for QR codes
+					var buffer = fs.readFileSync(__dirname + '/image.jpg');
+					var self = this;
+					Jimp.read(buffer, function(err, image) {
 
-			    if (err) {
-			        console.error(err);
-			        self.sendSocketNotification("SCAN_QR_CODE_RESULT", {"result": null, "error": err});
-							return;
-			    }
-			    var qr = new QrCode();
+						var self2 = self; // Asign this/self so we can reference to this class inside the callback.
 
-			    qr.callback = function(err, value) {
-			        if (err) {
-			            console.error(err);
-			        }
+					    if (err) {
+					        console.error(err);
+					        self.sendSocketNotification("SCAN_QR_CODE_RESULT", {"result": null, "error": err});
+									return;
+					    }
+					    var qr = new QrCode();
 
-							self.sendSocketNotification("SCAN_QR_CODE_RESULT", {"result": value, "error": err});
-			    };
-			    qr.decode(image.bitmap);
+					    qr.callback = function(err, value) {
+					        if (err) {
+					            console.error(err);
+					        }
+
+									self.sendSocketNotification("SCAN_QR_CODE_RESULT", {"result": value, "error": err});
+					    };
+					    qr.decode(image.bitmap);
+					});
+					// eof: Start QRCode decode
+
+
+
+
+
+
+			}).catch((err) => {
+			    console.log('error photo ', err);
 			});
+
+
+
+
+
+
 		}
 	},
 });
