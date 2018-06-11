@@ -224,7 +224,21 @@ Module.register("ignationfacerec", {
 	socketNotificationReceived: function(notification, payload) {
 		Log.info("socket notification received: " + notification);
 
-		if (notification === "SCAN_QR_CODE_RESULT") { // Result for QRCodeScan. Payload contains error and result object.
+		if (notification === "AWS_REKOGNITION_RESULT") {
+			console.log("We got aws rekognition result: " + payload);
+
+			if (payload.result.faceId === null) {
+				this.config.statusMessage = "Welcome. Please register.";
+			} else {
+				this.config.statusMessage = "Welcome " + payload.result.faceId;
+			}
+
+			this.updateDom();
+
+		}
+
+
+		else if (notification === "SCAN_QR_CODE_RESULT") { // Result for QRCodeScan. Payload contains error and result object.
 			if (payload.error) { // Error
 				Log.info("QRCodeScan gave error.");
 				return;
