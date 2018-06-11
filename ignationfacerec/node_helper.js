@@ -48,54 +48,69 @@ module.exports = NodeHelper.create({
       // eof: AWS SDK configure
 
 
-      //console.log('picture: ', photo)
+      // taking photo
+      camera.takePhoto().then((photo) => {
 
-      // AWS SDK
-      var fileStream = fs.createReadStream('/Users/wesley/Desktop/parel.jpg'); //Face_photo.jpg
-      var now = new Date();
-      var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
-      var params = {Bucket: s3bucket, Key: key, Body: fileStream};
-      //console.log("filestream", fileStream);
-
-      var uploadPromise = s3.upload(params).promise();
-
-      var self = this;
-      uploadPromise.then((response) => {
+        console.log('picture: ', photo);
 
 
-        // Search faces
-        let params = {CollectionId:faceCollection, Image:{S3Object:{Bucket: s3bucket, Name:key}},
-        FaceMatchThreshold:80, MaxFaces:1};
-        rekognition.searchFacesByImage(params, function(err, resp)
-        {
-          
-          let body = '{}';
-          if(err) { // Error
-            console.log("we got error");
-            console.log(err, err.stack);
-          }
-          else { // Result
-            if(resp.FaceMatches.length > 0) { // Matches
-              console.log("matches");
 
-              var face = resp.FaceMatches[0].Face;
-              var faceId = face.ExternalImageId;
-              console.log("face match: " + faceId);
-              self.sendSocketNotification("AWS_REKOGNITION_RESULT", {"result": {"faceId": faceId}, "error": null});
+        // AWS SDK
+        var fileStream = fs.createReadStream('/Users/wesley/Desktop/parel.jpg'); //Face_photo.jpg
+        var now = new Date();
+        var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
+        var params = {Bucket: s3bucket, Key: key, Body: fileStream};
+        //console.log("filestream", fileStream);
+
+        var uploadPromise = s3.upload(params).promise();
+
+        var self = this;
+        uploadPromise.then((response) => {
+
+
+          // Search faces
+          let params = {CollectionId:faceCollection, Image:{S3Object:{Bucket: s3bucket, Name:key}},
+          FaceMatchThreshold:80, MaxFaces:1};
+          rekognition.searchFacesByImage(params, function(err, resp)
+          {
+
+            let body = '{}';
+            if(err) { // Error
+              console.log("we got error");
+              console.log(err, err.stack);
             }
-            else { // No matches
-              console.log("no matches");
-              self.sendSocketNotification("AWS_REKOGNITION_RESULT", {"result": {"faceId": null}, "error": null});
+            else { // Result
+              if(resp.FaceMatches.length > 0) { // Matches
+                console.log("matches");
+
+                var face = resp.FaceMatches[0].Face;
+                var faceId = face.ExternalImageId;
+                console.log("face match: " + faceId);
+                self.sendSocketNotification("AWS_REKOGNITION_RESULT", {"result": {"faceId": faceId}, "error": null});
+              }
+              else { // No matches
+                console.log("no matches");
+                self.sendSocketNotification("AWS_REKOGNITION_RESULT", {"result": {"faceId": null}, "error": null});
+              }
+
+
             }
-
-
-          }
+          });
+        }).catch((err) => {
+          console.log('error photo ', err);
+          self.sendSocketNotification("AWS_REKOGNITION_RESULT", {"result": null, "error": err});
         });
+        // eof: AWS SDK
+
+
+
+
       }).catch((err) => {
         console.log('error photo ', err);
-        self.sendSocketNotification("AWS_REKOGNITION_RESULT", {"result": null, "error": err});
       });
-      // eof: AWS SDK
+      // eof: taking photo
+
+
     }
     // eof: Take photo notification
   },
