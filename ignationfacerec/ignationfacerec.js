@@ -5,10 +5,16 @@
 * All rights reserved
 */
 
-const NOTIFICATION_SIGN_IN_USER               = "SIGN_IN_USER";
-const NOTIFICATION_SIGN_IN_USER_RESULT        = "SIGN_IN_USER_RESULT";
-const NOTIFICATION_REGISTER_USER              = "REGISTER_USER";
-const NOTIFICATION_REGISTER_USER_RESULT       = "REGISTER_USER_RESULT";
+const NOTIFICATION_SIGN_IN_USER               = "IG_SIGN_IN_USER";
+const NOTIFICATION_SIGN_IN_USER_RESULT        = "IG_SIGN_IN_USER_RESULT";
+const NOTIFICATION_REGISTER_USER              = "IG_REGISTER_USER";
+const NOTIFICATION_REGISTER_USER_RESULT       = "IG_REGISTER_USER_RESULT";
+const NOTIFICATION_STATUS_MESSAGE							= "IG_STATUS_MESSAGE";
+
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_FAILED            = 0;
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE    = 1;
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE = 2;
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE              = 3;
 
 Module.register("ignationfacerec", {
 
@@ -17,7 +23,7 @@ Module.register("ignationfacerec", {
 		guests: {}, // Format: "identifier": {"vcard": "vcard-content", "checkInOutTime": "timestamp", "isCheckedIn": false}
 		checkInOutDelay: 10000,
 		updateInterval: 1000, // Interval at which DOM will be cleaned up
-		timeToFade: 4000, // Time to be passed before a status message will be fade out.
+		timeToFade: 4000, // Time to be passed before a status message will be fade out. Typically we only want to use this for the "Welcome" message as not to stick on the screen for too long.
 		fadeSpeed: 4000, // The speed at which status messages fade.
 		statusMessage: "Ready to check-in",
 		statusMessageLastUpdateTime: null,
@@ -30,10 +36,7 @@ Module.register("ignationfacerec", {
 			/* Add each key you want to respond to in the form:
 			*      yourKeyName: "KeyName_from_MMM-KeyBindings"
 			*/
-			Right: "ArrowRight",
-			Left: "ArrowLeft",
 			Enter: "Enter",
-			Space: "Space",
 			/* ... */
 		},
 		keyBindingsTakeFocus: "Enter",
@@ -270,7 +273,7 @@ Module.register("ignationfacerec", {
 					} else {
 						this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER, {});
 
-						this.config.statusMessage = "Please look at the camera and hold still.";
+						this.config.statusMessage = "Please wait";
 						this.updateDom();
 					}
 				}
@@ -292,14 +295,20 @@ Module.register("ignationfacerec", {
 						return;
 					}
 
-					if (payload.result.faceId === null) { // Unknown user
-						this.config.statusMessage = "Welcome. Please enter your name and press enter to complete.";
-						this.config.imageKey = payload.result.key;
-						this.config.isInRegisterMode = true;
+					if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE) { // Taking picture
+						this.config.statusMessage = "Please look at the camera and hold still.";
+					} else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE) { // Analysing picture
+						this.config.statusMessage = "Thank you. Please wait.";
+					} else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE) { // Signing in is complete
+						if (payload.result.faceId === null) { // Unknown user
+							this.config.statusMessage = "Welcome. Please enter your name and press enter to complete.";
+							this.config.imageKey = payload.result.key;
+							this.config.isInRegisterMode = true;
 
-					} else { // Returning user
-						this.config.statusMessage = "Welcome " + payload.result.faceId;
-						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+						} else { // Returning user
+							this.config.statusMessage = "Welcome " + payload.result.faceId;
+							this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+						}
 					}
 
 					this.updateDom();

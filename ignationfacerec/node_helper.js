@@ -19,19 +19,25 @@ const faceCollection                          = 'photos';
 const s3bucket                                = 'ignationbucket';
 
 const camera                                  = new Raspistill({
-                                                outputDir: __dirname,
-                                                fileName: 'image',
-                                                encoding: 'jpg',
-                                                verticalFlip: true,
-                                                noPreview: true,
-                                                width: 500,
-                                                height: 680
-                                              });
+  outputDir: __dirname,
+  fileName: 'image',
+  encoding: 'jpg',
+  verticalFlip: true,
+  noPreview: true,
+  width: 500,
+  height: 680
+});
 
-const NOTIFICATION_SIGN_IN_USER               = "SIGN_IN_USER";
-const NOTIFICATION_SIGN_IN_USER_RESULT        = "SIGN_IN_USER_RESULT";
-const NOTIFICATION_REGISTER_USER              = "REGISTER_USER";
-const NOTIFICATION_REGISTER_USER_RESULT       = "REGISTER_USER_RESULT";
+const NOTIFICATION_SIGN_IN_USER                 = "IG_SIGN_IN_USER";
+const NOTIFICATION_SIGN_IN_USER_RESULT          = "IG_SIGN_IN_USER_RESULT";
+const NOTIFICATION_REGISTER_USER                = "IG_REGISTER_USER";
+const NOTIFICATION_REGISTER_USER_RESULT         = "IG_REGISTER_USER_RESULT";
+
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_FAILED            = 0;
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE    = 1;
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE = 2;
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE              = 3;
+
 // eof: Vars and constants
 
 module.exports = NodeHelper.create({
@@ -54,8 +60,14 @@ module.exports = NodeHelper.create({
       var message, msgcontent;
       // eof: AWS SDK configure
 
+      // Send status update
+      self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE}, "error": null});
+
       // taking photo
       camera.takePhoto().then((photo) => {
+        // Send status update
+        self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE}, "error": null});
+
         // AWS SDK
         var fileStream = fs.createReadStream(__dirname + '/image.jpg');
         var now = new Date();
@@ -81,11 +93,11 @@ module.exports = NodeHelper.create({
               if(resp.FaceMatches.length > 0) { // Matches
                 var face = resp.FaceMatches[0].Face;
                 var faceId = face.ExternalImageId;
-                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"faceId": faceId, "key": key}, "error": null});
+                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"faceId": faceId, "key": key, "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE}, "error": null});
                 return;
               }
               else { // No matches
-                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"faceId": null, "key": key}, "error": null});
+                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"faceId": null, "key": key, "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE}, "error": null});
                 return;
               }
             }
