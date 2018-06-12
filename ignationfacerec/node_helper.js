@@ -5,33 +5,34 @@
 * All rights reserved
 */
 
+// Vars and constants
+var fs    				                            = require("fs");
+const AWS                                     = require('aws-sdk');
+const AWS_ACCESS_KEY_ID                       = "AKIAJ2MBWRIJ4SFMJPRA";
+const AWS_SECRET_ACCESS_KEY                   = "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"
+const rekognition                             = new AWS.Rekognition({ "accessKeyId": AWS_ACCESS_KEY_ID, "secretAccessKey": AWS_SECRET_ACCESS_KEY, "region": "us-west-2" });
 
-const AWS                   = require('aws-sdk');
+const RaspiCam 	                              = require("raspicam");
+const Raspistill                              = require('node-raspistill').Raspistill;
 
-const AWS_ACCESS_KEY_ID     = "AKIAJ2MBWRIJ4SFMJPRA";
-const AWS_SECRET_ACCESS_KEY = "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"
-const rekognition           = new AWS.Rekognition({ "accessKeyId": AWS_ACCESS_KEY_ID, "secretAccessKey": AWS_SECRET_ACCESS_KEY, "region": "us-west-2" });
+const faceCollection                          = 'photos';
+const s3bucket                                = 'ignationbucket';
 
-const RaspiCam 	            = require("raspicam");
-const Raspistill            = require('node-raspistill').Raspistill;
+const camera                                  = new Raspistill({
+                                                outputDir: __dirname,
+                                                fileName: 'image',
+                                                encoding: 'jpg',
+                                                verticalFlip: true,
+                                                noPreview: true,
+                                                width: 500,
+                                                height: 680
+                                              });
 
-const faceCollection        = 'photos';
-const s3bucket              = 'ignationbucket';
-
-const camera                = new Raspistill({
-                                outputDir: __dirname,
-                                fileName: 'image',
-                                encoding: 'jpg',
-                                verticalFlip: true,
-                                noPreview: true,
-                                width: 500,
-                                height: 680
-                            });
-
-var fs    				          = require("fs");
-var cameraIsBusy            = false;
-
-
+const NOTIFICATION_SIGN_IN_USER               = "SIGN_IN_USER";
+const NOTIFICATION_SIGN_IN_USER_RESULT        = "SIGN_IN_USER_RESULT";
+const NOTIFICATION_REGISTER_USER              = "REGISTER_USER";
+const NOTIFICATION_REGISTER_USER_RESULT       = "REGISTER_USER_RESULT";
+// eof: Vars and constants
 
 module.exports = NodeHelper.create({
   // Override start method.
@@ -39,28 +40,22 @@ module.exports = NodeHelper.create({
     console.log("Starting node helper for: " + this.name);
   },
 
-  // Override socketNotificationReceived method.
+  /*** socketNotificationReceived ***
+  *
+  *   A notification from the client was received.
+  *
+  */
   socketNotificationReceived: function(notification, payload) {
-
     // Take photo notification
-    if (notification === "SIGN_IN_USER") { // Sign in user
+    if (notification === NOTIFICATION_SIGN_IN_USER) { // Sign in user
       // AWS SDK configure
       AWS.config.loadFromPath(__dirname + '/AWS.config.json');
       var s3 = new AWS.S3();
       var message, msgcontent;
       // eof: AWS SDK configure
 
-      if (cameraIsBusy) {
-        return;
-      }
-      cameraIsBusy = true;
-
       // taking photo
       camera.takePhoto().then((photo) => {
-        cameraIsBusy = false;
-
-        console.log('picture: ', photo);
-
         // AWS SDK
         var fileStream = fs.createReadStream('/Users/wesley/Desktop/parel.jpg'); //Face_photo.jpg
         var now = new Date();
@@ -79,39 +74,35 @@ module.exports = NodeHelper.create({
 
             let body = '{}';
             if(err) { // Error
-              console.log("we got error");
-              console.log(err, err.stack);
+              self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": null, "error": err});
+              return;
             }
             else { // Result
               if(resp.FaceMatches.length > 0) { // Matches
-                console.log("matches");
-
                 var face = resp.FaceMatches[0].Face;
                 var faceId = face.ExternalImageId;
-                console.log("face match: " + faceId);
-                self.sendSocketNotification("AWS_SIGN_IN_RESULT", {"result": {"faceId": faceId, "key": key}, "error": null});
+                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"faceId": faceId, "key": key}, "error": null});
+                return;
               }
               else { // No matches
-                console.log("no matches");
-                self.sendSocketNotification("AWS_SIGN_IN_RESULT", {"result": {"faceId": null, "key": key}, "error": null});
+                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"faceId": null, "key": key}, "error": null});
+                return;
               }
-
-
             }
           });
         }).catch((err) => {
-          console.log('error photo ', err);
-          self.sendSocketNotification("AWS_SIGN_IN_RESULT", {"result": null, "error": err});
+          self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": null, "error": err});
+          return;
         });
         // eof: AWS SDK
       }).catch((err) => {
-        cameraIsBusy = false;
-        console.log('error photo ', err);
+        self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": null, "error": err});
+        return;
       });
       // eof: taking photo
 
     } // eof: Sign in user
-    else if (notification === "REGISTER_USER") { // Register user
+    else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
       var externalImageId = payload.name; // Username
       var key = payload.key; // Unique identifier
 
@@ -120,12 +111,16 @@ module.exports = NodeHelper.create({
       rekognition.indexFaces(params, function(err, resp) {
 
         if (err) {
-          self.sendSocketNotification("AWS_REGISTER_RESULT", {"result": null, "error": err});
+          self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {"result": null, "error": err});
+          return;
         } else {
-          self.sendSocketNotification("AWS_REGISTER_RESULT", {"result": {"externalImageId": externalImageId}, "error": null});
+          self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {"result": {"externalImageId": externalImageId}, "error": null});
+          return;
         }
 
       });
+
     } // Eof: Register user
-  }, // eof: Override socketNotificationReceived method.
+
+  }, // eof: socketNotificationReceived
 });

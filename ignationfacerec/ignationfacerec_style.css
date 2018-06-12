@@ -1,0 +1,16 @@
+#ignationfacerec-input-name {
+  width: 250px;
+  height: 40px;
+  background-color:black;
+  color: #fff;
+  border-width: 0px;
+  font-size: 30px;
+  font-family: "Roboto";
+  font-weight: 100;
+  text-align: right;
+  display: block;
+}
+
+input:focus{
+    outline: none;
+}

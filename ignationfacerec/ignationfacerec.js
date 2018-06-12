@@ -4,19 +4,25 @@
 * By Ignation https://ignation.io
 * All rights reserved
 */
+
+const NOTIFICATION_SIGN_IN_USER               = "SIGN_IN_USER";
+const NOTIFICATION_SIGN_IN_USER_RESULT        = "SIGN_IN_USER_RESULT";
+const NOTIFICATION_REGISTER_USER              = "REGISTER_USER";
+const NOTIFICATION_REGISTER_USER_RESULT       = "REGISTER_USER_RESULT";
+
 Module.register("ignationfacerec", {
 
 	// Module config defaults.
 	defaults: {
 		guests: {}, // Format: "identifier": {"vcard": "vcard-content", "checkInOutTime": "timestamp", "isCheckedIn": false}
+		checkInOutDelay: 10000,
 		updateInterval: 1000, // Interval at which DOM will be cleaned up
 		timeToFade: 4000, // Time to be passed before a status message will be fade out.
-		checkInOutDelay: 10000,
+		fadeSpeed: 4000, // The speed at which status messages fade.
 		statusMessage: "Ready to check-in",
 		statusMessageLastUpdateTime: null,
-		isInRegisterMode: false,
+		isInRegisterMode: true,
 		imageKey: null,
-		fadeSpeed: 4000, // The speed at which status messages fade.
 		keyPressNotificationReceiveAmount: 0,
 		// MMM KeyBindings
 		keyBindingsMode: "DEFAULT",
@@ -144,7 +150,11 @@ Module.register("ignationfacerec", {
 
 
 
-			// Define start sequence.
+			/*** start() ***
+			*
+			*   Defines the start sequence for the module.
+			*
+			*/
 			start: function() {
 				Log.info("Starting module: " + this.name);
 
@@ -158,6 +168,11 @@ Module.register("ignationfacerec", {
 				}, this.config.updateInterval);
 			},
 
+			/*** getScripts() ***
+			*
+			*   Loads external JS scripts
+			*
+			*/
 			getScripts: function() {
 				return [
 					this.file('node_modules/vcard-parser/src/vcard.js'),
@@ -165,6 +180,20 @@ Module.register("ignationfacerec", {
 				];
 			},
 
+			/*** getStyles() ***
+			*
+			*   Loads CSS scripts
+			*
+			*/
+			getStyles: function() {
+				return ["ignationfacerec_style.css"];
+			},
+
+			/*** cleanDom() ***
+			*
+			*   Cleans out the statusMessage when time has elapsed
+			*
+			*/
 			cleanDom: function() {
 				if (!this.config.isInRegisterMode && this.config.statusMessageLastUpdateTime != null) {
 					if (((new Date()).getTime() - this.config.statusMessageLastUpdateTime) >= this.config.timeToFade) {
@@ -175,11 +204,18 @@ Module.register("ignationfacerec", {
 
 				}
 			},
-			// Override dom generator.
+
+			/*** getDom() ***
+			*
+			*   Override dom generator
+			*
+			*/
 			getDom: function() {
 				var wrapper = document.createElement("div");
 
 				if (this.config.isInRegisterMode) {
+					var status = document.createTextNode("Register new user");
+
 					var textInput = document.createElement("input");
 					textInput.type = "text";
 					textInput.placeholder = "Your name";
@@ -187,6 +223,7 @@ Module.register("ignationfacerec", {
 
 					wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
 					wrapper.id = "ignationfacerec-wrapper";
+					wrapper.appendChild(status);
 					wrapper.appendChild(textInput);
 				} else {
 					var status = document.createTextNode(this.config.statusMessage);
@@ -202,7 +239,11 @@ Module.register("ignationfacerec", {
 			},
 
 
-			// Override notification handler.
+			/*** notificationReceived ***
+			*
+			*   A notification was received
+			*
+			*/
 			notificationReceived: function(notification, payload, sender) {
 				Log.info("notification received: " + notification);
 
@@ -220,31 +261,32 @@ Module.register("ignationfacerec", {
 					this.config.keyPressNotificationReceiveAmount = 0;
 
 					if (this.config.isInRegisterMode)  { // User needs to register before continue.
-						console.log("Registering user");
 						var name = document.getElementById("ignationfacerec-input-name").value;
 
 						this.config.statusMessage = "Please wait: Registering user.";
 						this.updateDom();
 
-						this.sendSocketNotification("REGISTER_USER", {"name": name, "key": this.config.imageKey});
+						this.sendSocketNotification(NOTIFICATION_REGISTER_USER, {"name": name, "key": this.config.imageKey});
 					} else {
-						console.log("signing in user");
-						this.sendSocketNotification("SIGN_IN_USER", {});
+						this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER, {});
 
-						this.config.statusMessage = "Please wait. Signing user in.";
+						this.config.statusMessage = "Please look at the camera and hold still.";
 						this.updateDom();
 					}
 				}
 			},
 
+			/*** socketNotificationReceived ***
+			*
+			*   A notification from the server was received
+			*
+			*/
 			socketNotificationReceived: function(notification, payload) {
 				Log.info("socket notification received: " + notification);
 
-				if (notification === "AWS_SIGN_IN_RESULT") { // AWS_SIGN_IN_RESULT
-					console.log("We got aws rekognition result: " + payload);
+				if (notification === NOTIFICATION_SIGN_IN_USER_RESULT) { // Sign in result
 
 					if (payload.error) { // Error
-						console.log("ERROR: " + payload.error);
 						this.config.statusMessage = "An error occured: " + payload.error;
 						this.updateDom();
 						return;
@@ -258,18 +300,15 @@ Module.register("ignationfacerec", {
 					} else { // Returning user
 						this.config.statusMessage = "Welcome " + payload.result.faceId;
 						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
-						console.log(this.config.statusMessageLastUpdateTime);
 					}
 
 					this.updateDom();
 
 				} // eof: AWS_SIGN_IN_RESULT
-				else if (notification === "AWS_REGISTER_RESULT") { // AWS_REGISTER_RESULT
-					console.log("registered");
-					console.log(payload.result);
+				else if (notification === NOTIFICATION_REGISTER_USER_RESULT) { // Register result
 
 					if (payload.error) {
-						this.config.statusMessage = "Something went wrong registering.";
+						this.config.statusMessage = "Something went wrong registering. Please try again.";
 					} else {
 						this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
 						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
@@ -280,6 +319,9 @@ Module.register("ignationfacerec", {
 
 					this.updateDom();
 				} // eof: AWS_REGISTER_RESULT
+				else if (notification === "STATUS_UPDATE") { // Status update
+					this.config.statusMessage = payload.result.message;
+					this.updateDom();
+				} // eof: Status update
 			},
-
 		});
