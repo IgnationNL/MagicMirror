@@ -1,5 +1,5 @@
 /* Magic Mirror
- * Module: QrCodeScanner
+ * Module: IgnationFaceRec
  *
  * By Ignation https://ignation.io
  * All rights reserved
@@ -8,11 +8,14 @@ Module.register("ignationfacerec", {
 
 	// Module config defaults.
 	defaults: {
-		updateInterval: 3000, // every second
 		guests: {}, // Format: "identifier": {"vcard": "vcard-content", "checkInOutTime": "timestamp", "isCheckedIn": false}
+		updateInterval: 4000,
 		checkInOutDelay: 10000,
 		statusMessage: "Ready to check-in",
+		isInRegisterMode: false,
+		imageKey: null,
 		fadeSpeed: 4000,
+		// MMM KeyBindings
 		keyBindingsMode: "DEFAULT",
         keyBindings: {
             /* Add each key you want to respond to in the form:
@@ -25,8 +28,10 @@ Module.register("ignationfacerec", {
             /* ... */
         },
 				keyBindingsTakeFocus: "Enter",
+			// eof: MMM KeyBindings
 	},
 
+	// MMM KeyBindings
 	/*** setupKeyBindings ***
 	     *
 	     *   Add function below to your moduleName.js
@@ -163,7 +168,7 @@ Module.register("ignationfacerec", {
 	        this.currentKeyPressMode = "DEFAULT";
 	        // DO ANYTHING YOU NEED
 	    },
-			// eof: Key
+			// eof: MMM KeyBindings
 
 
 
@@ -177,7 +182,6 @@ Module.register("ignationfacerec", {
 
 		// Schedule update timer.
 		setInterval(function() {
-			self.scanQRCode();
 			self.updateDom(self.config.fadeSpeed);
 		}, this.config.updateInterval);
 	},
@@ -189,23 +193,28 @@ Module.register("ignationfacerec", {
         ];
     },
 
-	/* scanQRCode()
-	 * Sends a request to the server to take a picture and scan it for QR codes.
-	 *
-	 */
-	scanQRCode: function() {
-		this.sendSocketNotification("SCAN_QR_CODE", null);
-	},
-
 	// Override dom generator.
 	getDom: function() {
-		var status = document.createTextNode(this.config.statusMessage);
 		var wrapper = document.createElement("div");
-		wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
-		wrapper.id = "qrcodescanner-statusmessage";
-		wrapper.appendChild(status);
 
-		this.config.statusMessage = "";
+		if (this.config.isInRegisterMode) {
+			var textInput = document.createElement("input");
+			textInput.type = "text";
+			textInput.placeholder = "Your name";
+			textInput.id = "ignationfacerec-input-name";
+
+			wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
+			wrapper.id = "ignationfacerec-wrapper";
+			wrapper.appendChild(textInput);
+		} else {
+			var status = document.createTextNode(this.config.statusMessage);
+
+			wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
+			wrapper.id = "ignationfacerec-wrapper";
+			wrapper.appendChild(status);
+
+			this.config.statusMessage = "";
+		}
 
 		return wrapper;
 	},
@@ -217,64 +226,67 @@ Module.register("ignationfacerec", {
 
 
 		if (notification === "KEYPRESS") {
-			this.sendSocketNotification("KEYPRESS", payload);
+			if (payload.KeyName !== "Enter") { // We only listen to Enters
+				return;
+			}
+
+			if (this.config.isInRegisterMode)  { // User needs to register before continue.
+				console.log("Registering user");
+				var name = document.getElementById("ignationfacerec-input-name").value;
+
+				console.log(document.getElementById("ignationfacerec-input-name"));
+				console.log("receiving registration for user: " + name + " with ID: " + this.config.imageKey);
+				this.sendSocketNotification("REGISTER_USER", {"name": name, "key": this.config.imageKey});
+			} else {
+				console.log("signing in user");
+				this.sendSocketNotification("SIGN_IN_USER", {});
+			}
+
+
+
 		}
 	},
 
 	socketNotificationReceived: function(notification, payload) {
 		Log.info("socket notification received: " + notification);
 
-		if (notification === "AWS_REKOGNITION_RESULT") {
+		if (notification === "AWS_SIGN_IN_RESULT") { // AWS_SIGN_IN_RESULT
 			console.log("We got aws rekognition result: " + payload);
 
-			if (payload.result.faceId === null) {
-				this.config.statusMessage = "Welcome. Please register.";
-			} else {
+			if (payload.error) { // Error
+				console.log("ERROR: " + payload.error);
+				this.config.statusMessage = "An error occured: " + payload.error;
+				this.updateDom();
+				return;
+			}
+
+			if (payload.result.faceId === null) { // Unknown user
+				this.config.statusMessage = "Welcome. Please enter your name and press enter to complete.";
+				this.config.imageKey = payload.result.key;
+				this.config.isInRegisterMode = true;
+
+			} else { // Returning user
 				this.config.statusMessage = "Welcome " + payload.result.faceId;
 			}
 
 			this.updateDom();
 
-		}
+		} // eof: AWS_SIGN_IN_RESULT
+		else if (notification === "AWS_REGISTER_RESULT") { // AWS_REGISTER_RESULT
+			console.log("registered");
+			console.log(payload.result);
 
-
-		else if (notification === "SCAN_QR_CODE_RESULT") { // Result for QRCodeScan. Payload contains error and result object.
-			if (payload.error) { // Error
-				Log.info("QRCodeScan gave error.");
-				return;
+			if (payload.error) {
+				this.config.statusMessage = "Something went wrong registering.";
+			} else {
+				this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
 			}
+			this.config.isInRegisterMode = false;
+			this.config.imageKey = null;
 
-			// Parse VCard
-			var card = vCard.parse(payload.result.result);
-			var email = card.email[0].value;
 
-			if (!email) { // Cannot check guest in without email. Show error.
-				// Show in interface
-				this.config.statusMessage = "Cannot check in guest. The QRCode doesn't contain an e-mail address.";
-				this.updateDom();
-				return;
-			}
-
-			// Check if guest has been here before
-			if (!this.config.guests.hasOwnProperty(email)) { // First time. Add to guest array and check in.
-				var newGuest = {"vcard": card, "checkInOutTime": (new Date()).getTime(), "isCheckedIn": true}
-				this.config.guests[email] = newGuest;
-
-				// Show in interface
-				this.config.statusMessage = "Welcome " + email;
-				this.updateDom();
-			} else { // Guest is already known. Check in or out.
-				if (((new Date().getTime()) - this.config.guests[email].checkInOutTime) < this.config.checkInOutDelay) { // Ignore update if another check in or check out occured < x seconds ago
-					return;
-				} else { // We can now check in/out the user
-					this.config.guests[email].isCheckedIn = !this.config.guests[email].isCheckedIn;
-					this.config.guests[email].checkInOutTime = (new Date()).getTime();
-
-					this.config.statusMessage = (this.config.guests[email].isCheckedIn) ? "Welcome " + email : "Goodbye " + email;
-					this.updateDom();
-				}
-			}
-		}
+			this.updateDom();
+		} // eof: AWS_REGISTER_RESULT
 	},
 
 });

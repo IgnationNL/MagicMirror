@@ -1,7 +1,7 @@
 {
-  "name": "qrcodescanner",
+  "name": "ignationfacerec",
   "version": "1.0.0",
-  "description": "QRCodeScanner module for Magic Mirror",
+  "description": "Ignation Face Recognition module for Magic Mirror",
   "homepage": "https://ignation.io",
   "dependencies": {
     "fs": "latest",
