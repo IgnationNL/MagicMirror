@@ -17,6 +17,10 @@ const Raspistill                              = require('node-raspistill').Raspi
 
 const faceCollection                          = 'photos';
 const s3bucket                                = 'ignationbucket';
+var SerialPort                                = require('serialport');
+var port  = new SerialPort('/dev/tty.usbmodem1411', {
+  baudRate: 57600
+});
 
 const camera                                  = new Raspistill({
   outputDir: __dirname,
@@ -67,6 +71,17 @@ module.exports = NodeHelper.create({
       camera.takePhoto().then((photo) => {
         // Send status update
         this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE}, "error": null});
+
+        // Notify User via LED
+        port.write('main screen turn on', function(err) {
+          if (err) {
+            return console.log('Error on write: ', err.message);
+          }
+          console.log('message written');
+        });
+        // eof: Notify User via LED
+
+
 
         // AWS SDK
         var fileStream = fs.createReadStream(__dirname + '/image.jpg');
