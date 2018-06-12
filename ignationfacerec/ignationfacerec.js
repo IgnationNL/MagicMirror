@@ -27,7 +27,7 @@ Module.register("ignationfacerec", {
 		fadeSpeed: 4000, // The speed at which status messages fade.
 		statusMessage: "Ready to check-in",
 		statusMessageLastUpdateTime: null,
-		isInRegisterMode: true,
+		isInRegisterMode: false,
 		imageKey: null,
 		keyPressNotificationReceiveAmount: 0,
 		// MMM KeyBindings
@@ -290,7 +290,12 @@ Module.register("ignationfacerec", {
 				if (notification === NOTIFICATION_SIGN_IN_USER_RESULT) { // Sign in result
 
 					if (payload.error) { // Error
-						this.config.statusMessage = "An error occured: " + payload.error;
+						this.config.statusMessage = "Please try again.";
+
+						if (payload.error.message.includes("no faces in the image")) {
+							this.config.statusMessage = "Couldn't recognize face. Please try again.";
+							this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+						}
 						this.updateDom();
 						return;
 					}
@@ -318,13 +323,13 @@ Module.register("ignationfacerec", {
 
 					if (payload.error) {
 						this.config.statusMessage = "Something went wrong registering. Please try again.";
+						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
 					} else {
 						this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
 						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
 					}
 					this.config.isInRegisterMode = false;
 					this.config.imageKey = null;
-
 
 					this.updateDom();
 				} // eof: AWS_REGISTER_RESULT

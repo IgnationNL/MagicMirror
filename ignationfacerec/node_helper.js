@@ -61,12 +61,12 @@ module.exports = NodeHelper.create({
       // eof: AWS SDK configure
 
       // Send status update
-      self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE}, "error": null});
+      this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE}, "error": null});
 
       // taking photo
       camera.takePhoto().then((photo) => {
         // Send status update
-        self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE}, "error": null});
+        this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {"result": {"status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE}, "error": null});
 
         // AWS SDK
         var fileStream = fs.createReadStream(__dirname + '/image.jpg');
