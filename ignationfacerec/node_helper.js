@@ -5,25 +5,33 @@
 * All rights reserved
 */
 
-var fs    				= require("fs");
-const AWS        = require('aws-sdk');
-const rekognition = new AWS.Rekognition({ "accessKeyId": "AKIAJ2MBWRIJ4SFMJPRA", "secretAccessKey": "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", "region": "us-west-2" });
 
-const RaspiCam 	= require("raspicam");
-const Raspistill = require('node-raspistill').Raspistill;
+const AWS                   = require('aws-sdk');
 
-const faceCollection = 'photos';
-const s3bucket = 'ignationbucket';
+const AWS_ACCESS_KEY_ID     = "AKIAJ2MBWRIJ4SFMJPRA";
+const AWS_SECRET_ACCESS_KEY = "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"
+const rekognition           = new AWS.Rekognition({ "accessKeyId": AWS_ACCESS_KEY_ID, "secretAccessKey": AWS_SECRET_ACCESS_KEY, "region": "us-west-2" });
 
-const camera = new Raspistill({
-  outputDir: __dirname,
-  fileName: 'image',
-  encoding: 'jpg',
-  verticalFlip: true,
-  noPreview: true,
-  width: 500,
-  height: 680
-});
+const RaspiCam 	            = require("raspicam");
+const Raspistill            = require('node-raspistill').Raspistill;
+
+const faceCollection        = 'photos';
+const s3bucket              = 'ignationbucket';
+
+const camera                = new Raspistill({
+                                outputDir: __dirname,
+                                fileName: 'image',
+                                encoding: 'jpg',
+                                verticalFlip: true,
+                                noPreview: true,
+                                width: 500,
+                                height: 680
+                            });
+
+var fs    				          = require("fs");
+var cameraIsBusy            = false;
+
+
 
 module.exports = NodeHelper.create({
   // Override start method.
@@ -42,8 +50,14 @@ module.exports = NodeHelper.create({
       var message, msgcontent;
       // eof: AWS SDK configure
 
+      if (cameraIsBusy) {
+        return;
+      }
+      cameraIsBusy = true;
+
       // taking photo
       camera.takePhoto().then((photo) => {
+        cameraIsBusy = false;
 
         console.log('picture: ', photo);
 
@@ -91,6 +105,7 @@ module.exports = NodeHelper.create({
         });
         // eof: AWS SDK
       }).catch((err) => {
+        cameraIsBusy = false;
         console.log('error photo ', err);
       });
       // eof: taking photo
@@ -111,11 +126,6 @@ module.exports = NodeHelper.create({
         }
 
       });
-
-
-
     } // Eof: Register user
-
-
   }, // eof: Override socketNotificationReceived method.
 });
