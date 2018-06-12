@@ -57,7 +57,7 @@ module.exports = NodeHelper.create({
       // taking photo
       camera.takePhoto().then((photo) => {
         // AWS SDK
-        var fileStream = fs.createReadStream('/Users/wesley/Desktop/parel.jpg'); //Face_photo.jpg
+        var fileStream = fs.createReadStream(__dirname + '/image.jpg');
         var now = new Date();
         var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
         var params = {Bucket: s3bucket, Key: key, Body: fileStream};
