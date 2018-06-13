@@ -38,7 +38,7 @@ var config = {
 		},
 		{
 			module: "clock",
-			position: "top_right",
+			position: "top_left",
 			config: {
 				timezone: "Europe/Amsterdam"
 			}
@@ -46,7 +46,7 @@ var config = {
 		
 		{
 			module: "ignationfacerec",
-			position: "bottom_bar"
+			position: "lower_third"
 		},
 {
 			module: "currentweather",
@@ -59,18 +59,23 @@ var config = {
 		},
 		{
 			module: "newsfeed",
-			position: "bottom_left",
+			position: "top_left",
 			config: {
 				feeds: [
 					{
 						title: "What's new?",
-						url: "https://www.ad.nl/home/rss.xml"
+						url: "https://www.alliander.com/en/rss.xml"
 					}
 				],
 				showSourceTitle: true,
 				showPublishDate: true
 			}
 		},
+		{
+			module: "ignationlogodisplay",
+			position: "top_right"
+		},
+
 		
 	]
 
