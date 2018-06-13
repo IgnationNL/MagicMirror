@@ -222,6 +222,7 @@ Module.register("ignationfacerec", {
 					var textInput = document.createElement("input");
 					textInput.type = "text";
 					textInput.placeholder = "Your name";
+					textInput.autofocus = true;
 					textInput.id = "ignationfacerec-input-name";
 
 					wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
@@ -290,12 +291,15 @@ Module.register("ignationfacerec", {
 				if (notification === NOTIFICATION_SIGN_IN_USER_RESULT) { // Sign in result
 
 					if (payload.error) { // Error
-						this.config.statusMessage = "Please try again.";
+console.log(payload.error);
 
-						if (payload.error.message.includes("no faces in the image")) {
-							this.config.statusMessage = "Couldn't recognize face. Please try again.";
-							this.config.statusMessageLastUpdateTime = (new Date()).getTime();
-						}
+						this.config.statusMessage = "Please try again";
+
+	if (payload.error.message.includes("no faces in the image")) {
+	this.config.statusMessage = "Couldn't recognize face. Please try again.";
+this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+}
+
 						this.updateDom();
 						return;
 					}
@@ -323,13 +327,13 @@ Module.register("ignationfacerec", {
 
 					if (payload.error) {
 						this.config.statusMessage = "Something went wrong registering. Please try again.";
-						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
 					} else {
 						this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
 						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
 					}
 					this.config.isInRegisterMode = false;
 					this.config.imageKey = null;
+
 
 					this.updateDom();
 				} // eof: AWS_REGISTER_RESULT

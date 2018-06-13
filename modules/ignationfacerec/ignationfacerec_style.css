@@ -4,13 +4,19 @@
   background-color:black;
   color: #fff;
   border-width: 0px;
-  font-size: 30px;
+  font-size: 50px;
   font-family: "Roboto";
   font-weight: 100;
-  text-align: right;
-  display: block;
+  text-align: left;
+  display: inline-block;
+  margin-left: 20px;
 }
 
 input:focus{
-    outline: none;
+  outline: none;
+}
+
+
+#ignationfacerec-wrapper {
+  font-size: 50px;
 }
