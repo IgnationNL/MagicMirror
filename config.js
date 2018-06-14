@@ -37,13 +37,16 @@ var config = {
     			}
 		},
 		{
+			module: 'ignationled',
+		},
+		{
 			module: "clock",
 			position: "top_left",
 			config: {
 				timezone: "Europe/Amsterdam"
 			}
 		},
-		
+
 		{
 			module: "ignationfacerec",
 			position: "lower_third"
@@ -76,7 +79,7 @@ var config = {
 			position: "top_right"
 		},
 
-		
+
 	]
 
 };

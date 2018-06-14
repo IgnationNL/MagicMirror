@@ -1,0 +1,9 @@
+{
+  "name": "ignationled",
+  "version": "1.0.0",
+  "description": "Ignation LED module for Magic Mirror",
+  "homepage": "https://ignation.io",
+  "dependencies": {
+    "request": "latest"
+  }
+}

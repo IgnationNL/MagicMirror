@@ -251,7 +251,6 @@ Module.register("ignationfacerec", {
 			notificationReceived: function(notification, payload, sender) {
 				Log.info("notification received: " + notification);
 
-
 				if (notification === "KEYPRESS") {
 
 					if (payload.KeyName !== "Enter") { // We only listen to Enters
@@ -269,13 +268,15 @@ Module.register("ignationfacerec", {
 
 						this.config.statusMessage = "Please wait: Registering user.";
 						this.updateDom();
+						this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
 
 						this.sendSocketNotification(NOTIFICATION_REGISTER_USER, {"name": name, "key": this.config.imageKey});
 					} else {
-						this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER, {});
-
 						this.config.statusMessage = "Please wait";
 						this.updateDom();
+						this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
+
+						this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER, {});
 					}
 				}
 			},
@@ -291,51 +292,60 @@ Module.register("ignationfacerec", {
 				if (notification === NOTIFICATION_SIGN_IN_USER_RESULT) { // Sign in result
 
 					if (payload.error) { // Error
-console.log(payload.error);
+						console.log(payload.error);
 
 						this.config.statusMessage = "Please try again";
 
-	if (payload.error.message.includes("no faces in the image")) {
-	this.config.statusMessage = "Couldn't recognize face. Please try again.";
-this.config.statusMessageLastUpdateTime = (new Date()).getTime();
-}
+						if (payload.error.message.includes("no faces in the image")) {
+							this.config.statusMessage = "Couldn't recognize face. Please try again.";
+							this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+						}
 
 						this.updateDom();
+						this.sendNotification(NOTIFICATION_IG_LED_ERROR, null); // Notify LED
 						return;
 					}
 
+					var ledAction = NOTIFICATION_IG_LED_ERROR; // Default.
 					if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE) { // Taking picture
 						this.config.statusMessage = "Please look at the camera and hold still.";
+						ledAction = NOTIFICATION_IG_LED_START_FOCUS_ANIMATION;
 					} else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE) { // Analysing picture
 						this.config.statusMessage = "Thank you. Please wait.";
+						ledAction = NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR;
 					} else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE) { // Signing in is complete
 						if (payload.result.faceId === null) { // Unknown user
 							this.config.statusMessage = "Welcome. Please enter your name and press enter to complete.";
 							this.config.imageKey = payload.result.key;
 							this.config.isInRegisterMode = true;
+							ledAction = NOTIFICATION_IG_LED_INPUT_REQUIRED;
 
 						} else { // Returning user
 							this.config.statusMessage = "Welcome " + payload.result.faceId;
 							this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+							ledAction = NOTIFICATION_IG_LED_CONFIRMED;
 						}
 					}
 
 					this.updateDom();
+					this.sendNotification(ledAction, null); // Update LED
 
 				} // eof: AWS_SIGN_IN_RESULT
 				else if (notification === NOTIFICATION_REGISTER_USER_RESULT) { // Register result
 
+					var ledAction = NOTIFICATION_IG_LED_ERROR; // Default action
 					if (payload.error) {
 						this.config.statusMessage = "Something went wrong registering. Please try again.";
 					} else {
 						this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
 						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+						ledAction = NOTIFICATION_IG_LED_CONFIRMED;
 					}
 					this.config.isInRegisterMode = false;
 					this.config.imageKey = null;
 
-
 					this.updateDom();
+					this.sendNotification(ledAction, null); // Update LED
 				} // eof: AWS_REGISTER_RESULT
 				else if (notification === "STATUS_UPDATE") { // Status update
 					this.config.statusMessage = payload.result.message;
