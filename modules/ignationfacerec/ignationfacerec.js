@@ -339,6 +339,9 @@ Module.register("ignationfacerec", {
 					} else {
 						this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
 						this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+
+						this.sendNotification(NOTIFICATION_IG_LED_END_INPUT_REQUIRED, null); // End the input required LED animation first.
+
 						ledAction = NOTIFICATION_IG_LED_CONFIRMED;
 					}
 					this.config.isInRegisterMode = false;

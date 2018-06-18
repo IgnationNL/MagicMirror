@@ -12,7 +12,7 @@ const NOTIFICATION_IG_LED_END_FOCUS_ANIMATION       = "NOTIFICATION_IG_LED_END_F
 const NOTIFICATION_IG_LED_CONFIRMED               	= "NOTIFICATION_IG_LED_CONFIRMED";
 const NOTIFICATION_IG_LED_ERROR               			= "NOTIFICATION_IG_LED_ERROR";
 const NOTIFICATION_IG_LED_INPUT_REQUIRED            = "NOTIFICATION_IG_LED_INPUT_REQUIRED";
-
+const NOTIFICATION_IG_LED_END_INPUT_REQUIRED        = "NOTIFICATION_IG_LED_END_INPUT_REQUIRED";
 
 Module.register("ignationled", {
 
@@ -54,6 +54,8 @@ Module.register("ignationled", {
       this.sendSocketNotification(NOTIFICATION_IG_LED_ERROR, null);
 		} else if (notification === NOTIFICATION_IG_LED_INPUT_REQUIRED) {               // NOTIFICATION_IG_LED_INPUT_REQUIRED
       this.sendSocketNotification(NOTIFICATION_IG_LED_INPUT_REQUIRED, null);
+		} else if (notification === NOTIFICATION_IG_LED_END_INPUT_REQUIRED) {           // NOTIFICATION_IG_LED_END_INPUT_REQUIRED
+      this.sendSocketNotification(NOTIFICATION_IG_LED_END_INPUT_REQUIRED, null);
 		}
 	},
 });

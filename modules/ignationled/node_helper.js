@@ -15,6 +15,7 @@ const NOTIFICATION_IG_LED_END_FOCUS_ANIMATION       = "NOTIFICATION_IG_LED_END_F
 const NOTIFICATION_IG_LED_CONFIRMED               	= "NOTIFICATION_IG_LED_CONFIRMED";
 const NOTIFICATION_IG_LED_ERROR               			= "NOTIFICATION_IG_LED_ERROR";
 const NOTIFICATION_IG_LED_INPUT_REQUIRED            = "NOTIFICATION_IG_LED_INPUT_REQUIRED";
+const NOTIFICATION_IG_LED_END_INPUT_REQUIRED        = "NOTIFICATION_IG_LED_END_INPUT_REQUIRED";
 
 const IG_LED_SERVER_PATH_START_ACTIVITY_INDICATOR   = "startActivityIndicator";
 const IG_LED_SERVER_PATH_END_ACTIVITY_INDICATOR     = "endActivityIndicator";
@@ -23,6 +24,7 @@ const IG_LED_SERVER_PATH_END_FOCUS_ANIMATION        = "stopFocusAnimation";
 const IG_LED_SERVER_PATH_CONFIRMED               	  = "confirmed";
 const IG_LED_SERVER_PATH_ERROR               			  = "error";
 const IG_LED_SERVER_PATH_INPUT_REQUIRED             = "inputRequired";
+const IG_LED_SERVER_PATH_END_INPUT_REQUIRED         = "endInputRequired";
 
 const IG_LED_PYTHON_SERVER_URL                      = "http://localhost:8084";
 // eof: Vars and constants
@@ -53,7 +55,9 @@ module.exports = NodeHelper.create({
       this.makeGETRequest(IG_LED_SERVER_PATH_ERROR);
 		} else if (notification === NOTIFICATION_IG_LED_INPUT_REQUIRED) {               // NOTIFICATION_IG_LED_INPUT_REQUIRED
       this.makeGETRequest(IG_LED_SERVER_PATH_INPUT_REQUIRED);
-		}
+		} else if (notification === NOTIFICATION_IG_LED_END_INPUT_REQUIRED) {           // IG_LED_SERVER_PATH_END_INPUT_REQUIRED
+      this.makeGETRequest(IG_LED_SERVER_PATH_END_INPUT_REQUIRED);
+    }
   }, // eof: socketNotificationReceived
 
   /*** makeGETRequest() ***
