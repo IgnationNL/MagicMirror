@@ -302,13 +302,14 @@ Module.register("ignationfacerec", {
 						}
 
 						this.updateDom();
+						this.sendNotification(NOTIFICATION_IG_LED_END_INPUT_REQUIRED, null); // End the input required LED animation first.
 						this.sendNotification(NOTIFICATION_IG_LED_ERROR, null); // Notify LED
 						return;
 					}
 
 					var ledAction = NOTIFICATION_IG_LED_ERROR; // Default.
 					if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE) { // Taking picture
-						this.config.statusMessage = "Please look at the camera and hold still.";
+						this.config.statusMessage = "Please look at the mirror and hold still.";
 						ledAction = NOTIFICATION_IG_LED_START_FOCUS_ANIMATION;
 					} else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE) { // Analysing picture
 						this.config.statusMessage = "Thank you. Please wait.";
