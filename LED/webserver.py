@@ -20,7 +20,7 @@ isErrorAnimation = False
 isConfirmAnimation = False
 isInputRequired = False
 
-focusIndex = LED_COUNT
+focusIndex = LED_COUNT / 2
 
 # Create NeoPixel object with appropriate configuration.
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
@@ -40,6 +40,8 @@ def resetAllAnimations():
     isErrorAnimation = False
     isConfirmAnimation = False
     isInputRequired = False
+
+    focusIndex = LED_COUNT / 2
 
     turnOff(strip)
 
@@ -98,7 +100,7 @@ def confirmed():
     resetAllAnimations()
     global isConfirmAnimation
     isConfirmAnimation = True
-    turnOn(strip, 40)
+    turnOn(strip, 60)
     threading.Timer(4, endConfirmAnimation).start()
 
 def endConfirmAnimation():
@@ -119,7 +121,6 @@ def endErrorAnimation():
     if isErrorAnimation:
         isErrorAnimation = False
         turnOff(strip)
-        inputRequired()
         
 def inputRequired():
     resetAllAnimations()
@@ -131,7 +132,7 @@ def endInputRequired():
     global isInputRequired
     if isInputRequired:
         isInputRequired = False
-        turnOff(strip)
+    	turnOff(strip)
 
 def doAnimation():
     global isActivityAnimation
@@ -147,14 +148,14 @@ def doAnimation():
     
     if isActivityAnimation:
         turnOff(strip)
-        setPixelColor(strip, millis / 10 % LED_COUNT, 200)
+        setPixelColor(strip, millis / 50 % LED_COUNT, 200)
 
     elif isFocusAnimation:        
-        setPixelColor(strip, focusIndex, 30)
+        setPixelColor(strip, focusIndex , 30)
         setPixelColor(strip, LED_COUNT - focusIndex, 30)
-        focusIndex = focusIndex - 1
-        if (focusIndex <= LED_COUNT / 2):
-            focusIndex = LED_COUNT
+        focusIndex = focusIndex + 1
+        if (focusIndex >= LED_COUNT):
+            focusIndex = LED_COUNT / 2
             turnOff(strip)
         
 
