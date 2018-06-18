@@ -20,7 +20,7 @@ isErrorAnimation = False
 isConfirmAnimation = False
 isInputRequired = False
 
-focusIndex = 0
+focusIndex = LED_COUNT
 
 # Create NeoPixel object with appropriate configuration.
 strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
@@ -39,7 +39,9 @@ def resetAllAnimations():
     isFocusAnimation = False
     isErrorAnimation = False
     isConfirmAnimation = False
-    isInputRequired = False    
+    isInputRequired = False
+
+    turnOff(strip)
 
 def wheel(pos):
     """Generate rainbow colors across 0-255 positions."""
@@ -96,7 +98,7 @@ def confirmed():
     resetAllAnimations()
     global isConfirmAnimation
     isConfirmAnimation = True
-    turnOn(strip, 30)
+    turnOn(strip, 40)
     threading.Timer(4, endConfirmAnimation).start()
 
 def endConfirmAnimation():
@@ -125,6 +127,12 @@ def inputRequired():
     isInputRequired = True
     turnOn(strip, 120)
 
+def endInputRequired():
+    global isInputRequired
+    if isInputRequired:
+        isInputRequired = False
+        turnOff(strip)
+
 def doAnimation():
     global isActivityAnimation
     global isFocusAnimation
@@ -139,14 +147,14 @@ def doAnimation():
     
     if isActivityAnimation:
         turnOff(strip)
-        setPixelColor(strip, millis / 100 % LED_COUNT, 200)
+        setPixelColor(strip, millis / 10 % LED_COUNT, 200)
 
     elif isFocusAnimation:        
         setPixelColor(strip, focusIndex, 30)
         setPixelColor(strip, LED_COUNT - focusIndex, 30)
-        focusIndex = focusIndex + 1
-        if (focusIndex >= LED_COUNT / 2):
-            focusIndex = 0
+        focusIndex = focusIndex - 1
+        if (focusIndex <= LED_COUNT / 2):
+            focusIndex = LED_COUNT
             turnOff(strip)
         
 
@@ -178,6 +186,9 @@ class MyRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.wfile.write("OK")
         elif (self.path == "/inputRequired"):
             inputRequired() # Show solid blue light
+            self.wfile.write("OK")
+        elif (self.path == "/endInputRequired"):
+            endInputRequired() # turn off solid blue light
             self.wfile.write("OK")
         else:
             self.wfile.write("UNKNOWN")
