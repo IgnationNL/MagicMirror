@@ -37,19 +37,16 @@ var config = {
     			}
 		},
 		{
-			module: 'ignationled',
-		},
-		{
 			module: "clock",
 			position: "top_left",
 			config: {
 				timezone: "Europe/Amsterdam"
 			}
 		},
-
+		
 		{
 			module: "ignationfacerec",
-			position: "lower_third"
+			position: "middle_center"
 		},
 {
 			module: "currentweather",
@@ -77,9 +74,11 @@ var config = {
 		{
 			module: "ignationlogodisplay",
 			position: "top_right"
+		},{
+			module: "ignationled"
 		},
 
-
+		
 	]
 
 };
