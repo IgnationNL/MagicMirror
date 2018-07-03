@@ -29,7 +29,6 @@ Module.register("ignationfacerec", {
     statusMessageLastUpdateTime: null,
     isInRegisterMode: false,
     imageKey: null,
-    keyPressNotificationReceiveAmount: 0,
   },
 
   /*** start() ***
@@ -43,6 +42,15 @@ Module.register("ignationfacerec", {
     var self = this;
 
     this.sendSocketNotification("START", this.config);
+
+		$(document).on('keypress', function(e) {
+	    var tag = e.target.tagName.toLowerCase(); // e.g. input, textarea, document
+	    //if ( e.which === 119 && tag != 'input' && tag != 'textarea')
+
+			if (e.which == 13) { // Enter
+				self.handleEnterKeyPress();
+			}
+		});
 
     // Schedule update timer.
     setInterval(function() {
@@ -87,6 +95,33 @@ Module.register("ignationfacerec", {
     }
   },
 
+	/*** handleEnterKeyPress() ***
+	 *
+	 *   Performs necessary actions for enter press.
+	 *
+	 */
+	handleEnterKeyPress: function() {
+		if (this.config.isInRegisterMode) { // User needs to register before continue.
+			var name = document.getElementById("ignationfacerec-input-name").value;
+
+			this.config.statusMessage = "Please wait: Registering user.";
+			this.updateDom();
+			this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
+
+			this.sendSocketNotification(NOTIFICATION_REGISTER_USER, {
+				"name": name,
+				"key": this.config.imageKey
+			});
+		} else {
+			this.config.statusMessage = "Please wait";
+			this.updateDom();
+			this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
+
+			this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER, {});
+		}
+
+	},
+
   /*** getDom() ***
    *
    *   Override dom generator
@@ -129,38 +164,6 @@ Module.register("ignationfacerec", {
    */
   notificationReceived: function(notification, payload, sender) {
     Log.info("notification received: " + notification);
-
-    if (notification === "KEYPRESS") {
-
-      if (payload.KeyName !== "Enter") { // We only listen to Enters
-        return;
-      }
-
-      this.config.keyPressNotificationReceiveAmount++;
-      if (this.config.keyPressNotificationReceiveAmount !== 2) { // Multiple keyPressNotifications are send for one single event. Use this line to filter that out.
-        return;
-      }
-      this.config.keyPressNotificationReceiveAmount = 0;
-
-      if (this.config.isInRegisterMode) { // User needs to register before continue.
-        var name = document.getElementById("ignationfacerec-input-name").value;
-
-        this.config.statusMessage = "Please wait: Registering user.";
-        this.updateDom();
-        this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
-
-        this.sendSocketNotification(NOTIFICATION_REGISTER_USER, {
-          "name": name,
-          "key": this.config.imageKey
-        });
-      } else {
-        this.config.statusMessage = "Please wait";
-        this.updateDom();
-        this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
-
-        this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER, {});
-      }
-    }
   },
 
   /*** socketNotificationReceived ***

@@ -164,7 +164,8 @@ module.exports = NodeHelper.create({
 
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
-      var externalImageId = payload.name; // Username
+      var externalImageId = payload.name.split(" ")[0]; // Username, use only text before a space (e.g. first name). This is not optimal solution.
+
       var key = payload.key; // Unique identifier
 
       const params = {
