@@ -104,6 +104,14 @@ Module.register("ignationfacerec", {
 		if (this.config.isInRegisterMode) { // User needs to register before continue.
 			var name = document.getElementById("ignationfacerec-input-name").value;
 
+			if (name.toLowerCase === "cancel") { // Cancel registration.
+				this.config.isInRegisterMode = false;
+				this.config.statusMessage = "Cancelled by user";
+				this.config.statusMessageLastUpdateTime = (new Date()).getTime();
+				this.updateDom();
+				return;
+			}
+
 			this.config.statusMessage = "Please wait: Registering user.";
 			this.updateDom();
 			this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
