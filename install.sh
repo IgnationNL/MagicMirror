@@ -1,7 +1,7 @@
 
 echo "######## Cloning Magic Mirror repository... ########"
 git clone https://github.com/MichMich/MagicMirror.git # Clone MagicMirror repo
-
+git checkout v2.3.1 # Checkout older version, because there are issues with the latest.
 # Clone Ignation Magic Mirror repo. Note: SSH certificate needs to set up first.
 echo "######## Cloning Ignation repository... ########"
 git clone git@github.com:IgnationNL/MagicMirror.git IGMagicMirror
