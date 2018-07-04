@@ -117,7 +117,13 @@ module.exports = NodeHelper.create({
                 "error": err
               });
               return;
-            } else { // Result
+            } else { // Result 
+
+              s3.deleteObject(params.Image, function(errorDelete, dataDelete) {
+                 if (errorDelete) console.log(errorDelete, errorDelete.stack); // an error occurred
+                 else     console.log("Image deleted.");           // successful response
+               });
+
               if (resp.FaceMatches.length > 0) { // Matches
                 var face = resp.FaceMatches[0].Face;
                 var faceId = face.ExternalImageId;
@@ -164,13 +170,29 @@ module.exports = NodeHelper.create({
 
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
-      var externalImageId = payload.name.split(" ")[0]; // Username, use only text before a space (e.g. first name). This is not optimal solution.
+      var name = payload.name; 
 
       var key = payload.key; // Unique identifier
 
+      var params = {
+        Bucket: s3bucket, 
+        CopySource: s3bucket + "/" + key, 
+        Key: key,
+        MetadataDirective : "REPLACE",
+        Metadata: {
+              "fullname" : name,
+            }
+       };
+
+       s3.copyObject(params, function(err, data) {
+         if (err) console.log(err, err.stack); // an error occurred
+         else     console.log("metadata added " + name);           // successful response
+         
+       });
+
       const params = {
         CollectionId: faceCollection,
-        ExternalImageId: externalImageId,
+        ExternalImageId: payload.key,
         DetectionAttributes: [],
         Image: {
           S3Object: {
@@ -179,6 +201,7 @@ module.exports = NodeHelper.create({
           }
         }
       };
+
       var self = this;
       rekognition.indexFaces(params, function(err, resp) {
 
