@@ -26,7 +26,7 @@ const IG_LED_SERVER_PATH_ERROR               			  = "error";
 const IG_LED_SERVER_PATH_INPUT_REQUIRED             = "inputRequired";
 const IG_LED_SERVER_PATH_END_INPUT_REQUIRED         = "endInputRequired";
 
-const IG_LED_PYTHON_SERVER_URL                      = "http://localhost:8084";
+const IG_LED_PYTHON_SERVER_URL                      = "http://localhost:8001";
 // eof: Vars and constants
 
 module.exports = NodeHelper.create({

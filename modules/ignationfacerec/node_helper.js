@@ -91,7 +91,7 @@ module.exports = NodeHelper.create({
           callback(err, resp);
           return;
       });
-  }
+  },
 
   awsDeleteBucketObject: function (key, callback) {
       console.log("In awsDeleteBucketObject with key : " + key);
@@ -107,7 +107,7 @@ module.exports = NodeHelper.create({
       s3.deleteObject(params.Image, function(err, resp) {
           callback(err, resp);
       });
-  }
+  },
 
   awsIndexFace: function (key, callback) {
       console.log("in awsIndexFace with key : " + key);
@@ -133,8 +133,8 @@ module.exports = NodeHelper.create({
 
       rekognition.indexFaces(params, function(err, resp) {
           callback(err, resp);
-      }
-  }
+      });
+  },
 
 
   /*** socketNotificationReceived ***
@@ -181,7 +181,7 @@ module.exports = NodeHelper.create({
           }
 
           // Upload succesful, do search faces
-          awsRekognitionSearchFacesByImage(respUpload.Key, function(errSearchFace, respSearchFace)) {
+          awsRekognitionSearchFacesByImage(respUpload.Key, function(errSearchFace, respSearchFace) {
             if (errSearchFace) {
               self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": null,
@@ -191,7 +191,7 @@ module.exports = NodeHelper.create({
             }
 
             //If face was recognized then delete the image from the bucket
-            awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage)) {
+            awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
               if (errDeleteImage) {
                 console.log(errDeleteImage);
                 return;
@@ -233,9 +233,9 @@ module.exports = NodeHelper.create({
       }); // eof: taking photo //eof: takePhoto
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
-      awsIndexFace(payload.key, function (errIndexFace, respIndexFace)) {
+      awsIndexFace(payload.key, function (errIndexFace, respIndexFace) {
       console.log("in register user with payload : " + JSON.stringify(payload));
-      
+
         if (errIndexFace) {
           self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
             "result": null,
