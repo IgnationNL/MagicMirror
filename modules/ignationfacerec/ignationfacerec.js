@@ -215,7 +215,8 @@ Module.register("ignationfacerec", {
           ledAction = NOTIFICATION_IG_LED_INPUT_REQUIRED;
 
         } else { // Returning user
-          this.config.statusMessage = "Welcome " + payload.result.faceId;
+          console.log("original message");
+          this.config.statusMessage = "Welcome " + atob(payload.result.faceId);
           this.config.statusMessageLastUpdateTime = (new Date()).getTime();
           ledAction = NOTIFICATION_IG_LED_CONFIRMED;
         }

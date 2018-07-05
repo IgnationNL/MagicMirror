@@ -47,6 +47,95 @@ module.exports = NodeHelper.create({
   start: function() {
     console.log("Starting node helper for: " + this.name);
   },
+ 
+  // callback(err, resp);
+  awsUploadFile: function(callback) {
+      console.log("In awsUploadFile");
+      var fileStream = fs.createReadStream(__dirname + '/image.jpg');
+      var now = new Date();
+      var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
+      var params = {
+        Bucket: s3bucket,
+        Key: key,
+        Body: fileStream
+      };
+
+      var uploadPromise = s3.upload(params).promise();
+
+      var self = this;
+      uploadPromise.then((response) => {
+        callback(null, response);
+        return;
+
+      }). catch((err) => {
+        callback(err, null);
+        return;
+      });
+  },
+
+  awsRekognitionSearchFacesByImage: function(key, callback) {
+      console.log("in awsRekognitionSearchFacesByImage with key : " + key);
+      let params = {
+        CollectionId: faceCollection,
+        Image: {
+          S3Object: {
+            Bucket: s3bucket,
+            Name: key
+          }
+        },
+        FaceMatchThreshold: 80,
+        MaxFaces: 1
+      };
+
+      rekognition.searchFacesByImage(params, function(err, resp) {
+          callback(err, resp);
+          return;
+      });
+  }
+
+  awsDeleteBucketObject: function (key, callback) {
+      console.log("In awsDeleteBucketObject with key : " + key);
+      let params = {
+          Image: {
+            S3Object: {
+              Bucket: s3bucket,
+              Name: key
+            }
+          }
+      }
+
+      s3.deleteObject(params.Image, function(err, resp) {
+          callback(err, resp);
+      });
+  }
+
+  awsIndexFace: function (key, callback) {
+      console.log("in awsIndexFace with key : " + key);
+      var name = payload.name; 
+      var key = payload.key; // Unique identifier
+
+      console.log("key before encode " + key);
+      var nameEncoded = btoa(name);
+      console.log("Name : " + name + " and encoded : " + nameEncoded);
+      console.log("Name decoded again : " + atob(nameEncoded));
+
+      const params = {
+        CollectionId: faceCollection,
+        ExternalImageId: key + nameEncoded,
+        DetectionAttributes: [],
+        Image: {
+          S3Object: {
+            Bucket: s3bucket,
+            Name: key
+          }
+        }
+      };
+
+      rekognition.indexFaces(params, function(err, resp) {
+          callback(err, resp);
+      }
+  }
+
 
   /*** socketNotificationReceived ***
    *
@@ -56,6 +145,7 @@ module.exports = NodeHelper.create({
   socketNotificationReceived: function(notification, payload) {
     // Take photo notification
     if (notification === NOTIFICATION_SIGN_IN_USER) { // Sign in user
+      
       // AWS SDK configure
       AWS.config.loadFromPath(__dirname + '/AWS.config.json');
       var s3 = new AWS.S3();
@@ -81,137 +171,79 @@ module.exports = NodeHelper.create({
         });
 
         // AWS SDK
-        var fileStream = fs.createReadStream(__dirname + '/image.jpg');
-        var now = new Date();
-        var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
-        var params = {
-          Bucket: s3bucket,
-          Key: key,
-          Body: fileStream
-        };
+        awsUploadFile(function(errUpload, respUpload) {
+          if (errUpload) {
+            self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
+              "result": null,
+              "error": errUpload
+            });
+            return;
+          }
 
-        var uploadPromise = s3.upload(params).promise();
-
-        var self = this;
-        uploadPromise.then((response) => {
-          // Search faces
-          let params = {
-            CollectionId: faceCollection,
-            Image: {
-              S3Object: {
-                Bucket: s3bucket,
-                Name: key
-              }
-            },
-            FaceMatchThreshold: 80,
-            MaxFaces: 1
-          };
-          rekognition.searchFacesByImage(params, function(err, resp) {
-
-            let body = '{}';
-            if (err) { // Error
-              console.log("error aws: ");
-              console.log(err);
+          // Upload succesful, do search faces
+          awsRekognitionSearchFacesByImage(respUpload.Key, function(errSearchFace, respSearchFace)) {
+            if (errSearchFace) {
               self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
-                "result": null,
-                "error": err
-              });
-              return;
-            } else { // Result 
+                  "result": null,
+                  "error": errSearchFace
+                });
+                return;
+            }
 
-              s3.deleteObject(params.Image, function(errorDelete, dataDelete) {
-                 if (errorDelete) console.log(errorDelete, errorDelete.stack); // an error occurred
-                 else     console.log("Image deleted.");           // successful response
-               });
+            //If face was recognized then delete the image from the bucket
+            awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage)) {
+              if (errDeleteImage) {
+                console.log(errDeleteImage);
+                return;
+              }
+            }); //eof: deleteImage 
 
-              if (resp.FaceMatches.length > 0) { // Matches
+            //If match was found, send socket notification with the name of the person 
+            if (respSearchFace.FaceMatches.length > 0) { // Matches
                 var face = resp.FaceMatches[0].Face;
-                var faceId = face.ExternalImageId;
+                var faceId = face.ExternalImageId; 
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
                     "faceId": faceId,
-                    "key": key,
+                    "key": respUpload.Key,
                     "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
                   },
                   "error": null
                 });
                 return;
-              } else { // No matches
+            } else { // No matches
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
                     "faceId": null,
-                    "key": key,
+                    "key": respUpload.Key,
                     "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
                   },
                   "error": null
                 });
                 return;
               }
-            }
-          });
-        }).catch((err) => {
-          console.log("error sdfsdf: ");
-          console.log(err);
-          self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
-            "result": null,
-            "error": err
-          });
-          return;
-        });
-        // eof: AWS SDK
+          }); //eof: searchFaces
+        }); //eof: uploadFile
       }).catch((err) => {
         self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
           "result": null,
           "error": err
         });
         return;
-      });
-      // eof: taking photo
-
+      }); // eof: taking photo //eof: takePhoto
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
-      var name = payload.name; 
-
-      var key = payload.key; // Unique identifier
-
-      var params = {
-        Bucket: s3bucket, 
-        CopySource: s3bucket + "/" + key, 
-        Key: key,
-        MetadataDirective : "REPLACE",
-        Metadata: {
-              "fullname" : name,
-            }
-       };
-
-       s3.copyObject(params, function(err, data) {
-         if (err) console.log(err, err.stack); // an error occurred
-         else     console.log("metadata added " + name);           // successful response
-         
-       });
-
-      const params = {
-        CollectionId: faceCollection,
-        ExternalImageId: payload.key,
-        DetectionAttributes: [],
-        Image: {
-          S3Object: {
-            Bucket: s3bucket,
-            Name: key
-          }
-        }
-      };
-
-      var self = this;
-      rekognition.indexFaces(params, function(err, resp) {
-
-        if (err) {
+      awsIndexFace(payload.key, function (errIndexFace, respIndexFace)) {
+      console.log("in register user with payload : " + JSON.stringify(payload));
+      
+        if (errIndexFace) {
           self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
             "result": null,
             "error": err
           });
           return;
         } else {
+
           self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
             "result": {
               "externalImageId": externalImageId
@@ -220,9 +252,7 @@ module.exports = NodeHelper.create({
           });
           return;
         }
-
       });
-
     } // Eof: Register user
 
   }, // eof: socketNotificationReceived
