@@ -57,7 +57,6 @@ module.exports = NodeHelper.create({
  
   // callback(err, resp);
   awsUploadFile: function(callback) {
-      console.log("In awsUploadFile");
       var fileStream = fs.createReadStream(__dirname + '/image.jpg');
       var now = new Date();
       var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
@@ -81,7 +80,6 @@ module.exports = NodeHelper.create({
   },
 
   awsRekognitionSearchFacesByImage: function(key, callback) {
-      console.log("in awsRekognitionSearchFacesByImage with key : " + key);
       let params = {
         CollectionId: faceCollection,
         Image: {
@@ -101,7 +99,6 @@ module.exports = NodeHelper.create({
   },
 
   awsDeleteBucketObject: function(key, callback) {
-      console.log("In awsDeleteBucketObject with key : " + key);
       let params = {
         Bucket: s3bucket, 
         Key: key
@@ -114,14 +111,7 @@ module.exports = NodeHelper.create({
   },
 
   awsIndexFace: function (key, callback) {
-      console.log("in awsIndexFace with key : " + key);
-
-
-      console.log("key before encode " + key);
       var nameEncoded = Buffer.from(name).toString('base64');
-      console.log("Name : " + name + " and encoded : " + nameEncoded);
-      console.log("Name decoded again : " + Buffer.from(nameEncoded, 'base64').toString());
-
       const params = {
         CollectionId: faceCollection,
         ExternalImageId: key + nameEncoded,
@@ -190,7 +180,6 @@ module.exports = NodeHelper.create({
               //If face was recognized then delete the image from the bucket
               self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
                 if (errDeleteImage) {
-                  console.log(errDeleteImage);
                   return;
                 }
               }); //eof: deleteImage 
@@ -204,7 +193,7 @@ module.exports = NodeHelper.create({
                 var faceId = face.ExternalImageId; 
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
-                    "faceId": Buffer.from(faceId, 'base64').toString().substring(14),
+                    "faceId": Buffer.from(faceId.substring(17), 'base64').toString().substring(14),
                     "key": respUpload.Key,
                     "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
                   },
@@ -213,7 +202,6 @@ module.exports = NodeHelper.create({
                     //If face was recognized then delete the image from the bucket
                 self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
                   if (errDeleteImage) {
-                    console.log(errDeleteImage);
                     return;
                   }
                 }); //eof: deleteImage 
