@@ -189,7 +189,7 @@ Module.register("ignationfacerec", {
 
         this.config.statusMessage = "Please try again";
 
-        if (payload.error.message.includes("no faces in the image")) {
+        if ((payload.error.message) && payload.error.message.includes("no faces in the image")) {
           this.config.statusMessage = "Couldn't recognize face. Please try again.";
           this.config.statusMessageLastUpdateTime = (new Date()).getTime();
         }
