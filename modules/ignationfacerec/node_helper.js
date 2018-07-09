@@ -38,14 +38,13 @@ const NOTIFICATION_REGISTER_USER_RESULT         = "IG_REGISTER_USER_RESULT";
 const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_FAILED            = 0;
 const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE    = 1;
 const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE = 2;
-const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE              = 3
+const NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE              = 3;
 
 // AWS SDK configure
-      AWS.config.loadFromPath(__dirname + '/AWS.config.json');
-      var s3 = new AWS.S3();
-      var message, msgcontent;
-      // eof: AWS SDK configure
-
+AWS.config.loadFromPath(__dirname + '/AWS.config.json');
+var s3 = new AWS.S3();
+var message, msgcontent;
+// eof: AWS SDK configure
 
 // eof: Vars and constants
 
@@ -57,6 +56,10 @@ module.exports = NodeHelper.create({
  
   // callback(err, resp);
   awsUploadFile: function(callback) {
+
+
+
+      console.log("In awsUploadFile");
       var fileStream = fs.createReadStream(__dirname + '/image.jpg');
       var now = new Date();
       var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
@@ -65,21 +68,24 @@ module.exports = NodeHelper.create({
         Key: key,
         Body: fileStream
       };
-
+console.log("In awsUploadFile before promise");
       var uploadPromise = s3.upload(params).promise();
 
-      var self = this;
+	console.log("In awsUploadFile after promise");
       uploadPromise.then((response) => {
+console.log("In awsUploadFile response");
         callback(null, response);
         return;
 
       }). catch((err) => {
+console.log("ERROR should be duplicate " + err);
         callback(err, null);
         return;
       });
   },
 
   awsRekognitionSearchFacesByImage: function(key, callback) {
+      console.log("in awsRekognitionSearchFacesByImage with key : " + key);
       let params = {
         CollectionId: faceCollection,
         Image: {
@@ -93,25 +99,36 @@ module.exports = NodeHelper.create({
       };
 
       rekognition.searchFacesByImage(params, function(err, resp) {
+	if (err) {
+		console.log("searchface error : " + err);
+	}
           callback(err, resp);
           return;
       });
   },
 
-  awsDeleteBucketObject: function(key, callback) {
+  awsDeleteBucketObject: function (key, callback) {
+      console.log("In awsDeleteBucketObject with key : " + key);
       let params = {
-        Bucket: s3bucket, 
-        Key: key
-      };
+          Bucket: s3bucket,
+          Key: key    
+      }
 
-      s3.deleteObject(params.Image, function(err, resp) {
+      s3.deleteObject(params, function(err, resp) {
           callback(err, resp);
-          return;
+	  return;
       });
   },
 
-  awsIndexFace: function (key, callback) {
+  awsIndexFace: function (key, name, callback) {
+      console.log("in awsIndexFace with key : " + key);
+ console.log("in awsIndexFace with name : " + name);
+
+      console.log("key before encode " + key);
       var nameEncoded = Buffer.from(name).toString('base64');
+      console.log("Name : " + name + " and encoded : " + nameEncoded);
+      console.log("Name decoded again : " + Buffer.from(nameEncoded,'base64').toString());
+
       const params = {
         CollectionId: faceCollection,
         ExternalImageId: key + nameEncoded,
@@ -125,8 +142,8 @@ module.exports = NodeHelper.create({
       };
 
       rekognition.indexFaces(params, function(err, resp) {
+console.log("Annick : error is : " + err);
           callback(err, resp);
-          return;
       });
   },
 
@@ -138,11 +155,13 @@ module.exports = NodeHelper.create({
    */
   socketNotificationReceived: function(notification, payload) {
     // Take photo notification
+    var self = this;
     if (notification === NOTIFICATION_SIGN_IN_USER) { // Sign in user
       
-      
+
+
       // Send status update
-      this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
+      self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
         "result": {
           "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_TAKING_PICTURE
         },
@@ -152,7 +171,7 @@ module.exports = NodeHelper.create({
       // taking photo
       camera.takePhoto().then((photo) => {
         // Send status update
-        this.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
+        self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
           "result": {
             "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_ANALYSING_PICTURE
           },
@@ -160,7 +179,7 @@ module.exports = NodeHelper.create({
         });
 
         // AWS SDK
-        this.awsUploadFile(function(errUpload, respUpload) {
+        self.awsUploadFile(function(errUpload, respUpload) {
           if (errUpload) {
             self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
               "result": null,
@@ -176,36 +195,41 @@ module.exports = NodeHelper.create({
                   "result": null,
                   "error": errSearchFace
                 });
-
-              //If face was recognized then delete the image from the bucket
-              self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
-                if (errDeleteImage) {
-                  return;
-                }
-              }); //eof: deleteImage 
+//If face was recognized then delete the image from the bucket
+            self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
+              if (errDeleteImage) {
+                console.log("ANNICK delete error:" + errDeleteImage);
+                return;
+              }
+            }); //eof: deleteImage 
 
                 return;
-            }          
+            }
+         
 
             //If match was found, send socket notification with the name of the person 
             if (respSearchFace.FaceMatches.length > 0) { // Matches
                 var face = respSearchFace.FaceMatches[0].Face;
                 var faceId = face.ExternalImageId; 
+console.log("faceid is " + faceId);
+console.log("faceId.substring(17) " + faceId.substring(17));
+console.log("Buffer.from(faceId.substring(17) " + Buffer.from(faceId.substring(17)));
+
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
-                    "faceId": Buffer.from(faceId.substring(17), 'base64').toString().substring(14),
+                    "faceId": Buffer.from(faceId.substring(17), 'base64').toString(),
                     "key": respUpload.Key,
                     "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
                   },
                   "error": null
                 });
-                    //If face was recognized then delete the image from the bucket
-                self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
-                  if (errDeleteImage) {
-                    return;
-                  }
-                }); //eof: deleteImage 
-
+//If face was recognized then delete the image from the bucket
+            self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
+              if (errDeleteImage) {
+                console.log("ANNICK delete error:" + errDeleteImage);
+                return;
+              }
+            }); //eof: deleteImage 
                 return;
             } else { // No matches
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
@@ -230,7 +254,8 @@ module.exports = NodeHelper.create({
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
       self.awsIndexFace(payload.key, payload.name, function (errIndexFace, respIndexFace) {
-
+      console.log("in register user with payload : " + JSON.stringify(payload));
+      
         if (errIndexFace) {
           self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
             "result": null,
