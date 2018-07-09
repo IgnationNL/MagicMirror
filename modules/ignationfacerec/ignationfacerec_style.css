@@ -1,15 +1,16 @@
 #ignationfacerec-input-name {
-  width: 250px;
-  height: 40px;
+  width: 450px;
+  height: 100px;
   background-color:black;
   color: #fff;
   border-width: 0px;
-  font-size: 50px;
+  font-size: 100px;
   font-family: "Roboto";
-  font-weight: 100;
+  font-weight: bold;
   text-align: left;
   display: inline-block;
   margin-left: 20px;
+  line-height: 100px;
 }
 
 input:focus{
@@ -18,5 +19,7 @@ input:focus{
 
 
 #ignationfacerec-wrapper {
-  font-size: 50px;
+  font-size: 100px;
+  font-weight: bold;
+line-height: 100px;
 }
