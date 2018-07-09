@@ -11,12 +11,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
 
-
   <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/locale/nl.js"></script>
+
   <!-- eof: Load scripts -->
 
   <!-- Load CSS files -->
+  <link rel="icon" href="favicon.ico" />
+
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
 
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.css">
@@ -29,10 +34,13 @@
   <nav class="navbar navbar-light bg-light">
     <a class="navbar-brand" href="#">
       <img src="ignation_logo.svg" width="30" height="30" class="d-inline-block align-top" alt="">
-      M3
+      M3 by Ignation
     </a>
-    <button id="ig-add-button" class="btn btn-outline-success" type="button" onClick="$('#ig-modal-create').modal('show');">New user</button>
-    <button id="ig-delete-button" class="btn btn-outline-danger" type="button" onClick="deleteFilesConfirmation()" disabled>Delete selected</button>
+
+    <form class="form-inline">
+      <button id="ig-add-button" class="btn btn-outline-success" type="button" onClick="$('#ig-modal-create').modal('show');">New user</button>
+      <button id="ig-delete-button" class="btn btn-outline-danger" type="button" onClick="deleteFilesConfirmation()" disabled>Delete</button>
+  </form>
   </nav>
 
   <div class="container">
@@ -83,15 +91,15 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="ig-modal-file-preview-title">File Preview</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" onClick="didClosePreviewModal()">
         <span aria-hidden="true">&times;</span>
       </button>
         </div>
         <div class="modal-body">
-          <img id="ig-modal-file-preview" src="load-icon.gif" class="rounded mx-auto d-block" alt="..." style="width:250px;height:250px">
+          <img id="ig-modal-file-preview-image" src="load-icon.gif" class="rounded mx-auto d-block" alt="..." style="width:250px;height:250px">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal" onClick="didClosePreviewModal()">Close</button>
         </div>
       </div>
     </div>
@@ -104,7 +112,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="ig-modal-create-title">New User</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" onClick="didCloseCreateModal()">
           <span aria-hidden="true">&times;</span>
         </button>
         </div>
@@ -128,15 +136,10 @@
               <label for="ig-modal-create-preview">Preview</label>
               <img id="ig-modal-create-preview" class="rounded mx-auto d-block" alt="..." style="display:none;width:250px;height:250px">
             </div>
-
           </form>
-
-
-
-
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal" onClick="didCloseCreateModal()">Cancel</button>
           <button type="button" id="ig-btn-create" class="btn btn-primary" onClick="createFile()">Create</button>
         </div>
       </div>
@@ -307,16 +310,37 @@
         // Add data to table.
         for (var i = 0; i < resp.Contents.length; i++) {
           var file = resp.Contents[i];
-          console.log(file.Key);
           var name = atob(file.Key.substring(13));
 
 
           $('#ig-datagrid').DataTable().row.add([
-            name, file.Key, file.LastModified, file.isIndexed, "<input type=\"checkbox\" id=\"ig-checkbox-" + file.Key + "\" onClick=\"didToggleCheckbox('" + file.Key +
+            name, file.Key, moment(file.LastModified).fromNow(), file.isIndexed, "<input type=\"checkbox\" id=\"ig-checkbox-" + file.Key + "\" onClick=\"didToggleCheckbox('" + file.Key +
             "')\"> <button type=\"button\" class=\"btn btn-outline-primary\" onClick=\"showFilePreview('" + file.Key + "')\">Preview</button>"
           ]).draw(false);
         }
       });
+    }
+
+    /*** didCloseCreateModal() ***
+     *
+     *   Clears the create modal dialog of all entered input. Should be called when modal gets closed.
+     *
+     */
+    function didCloseCreateModal() {
+      $("#ig-modal-create-name").val("");
+      $("#ig-modal-create-file").val("");
+      $("#ig-modal-create-preview").attr("src", "");
+
+      $("#ig-modal-create-alert").hide();
+    }
+
+    /*** didClosePreviewModal() ***
+     *
+     *   Clears the preview modal dialog of all entered input. Should be called when modal gets closed.
+     *
+     */
+    function didClosePreviewModal() {
+      $("#ig-modal-file-preview-image").attr("src", "load-icon.gif");
     }
 
     /*** showFilePreview() ***
@@ -331,21 +355,10 @@
         return;
       }
 
-      $('#ig-modal-face-preview').modal('show');
+      $('#ig-modal-file-preview').modal('show');
 
       apiShowFilePreview(key, function(err, resp) {
-        if (err) {
-          alert("Cannot load image. Try refreshing the page. Error message: " + JSON.stringify(err));
-          return;
-        }
-
-        console.log(resp.Body);
-        // Decode image
-        var b64encoded = btoa(String.fromCharCode.apply(null, resp.Body.data));
-        var datajpg = "data:image/jpg;base64," + b64encoded;
-
-        $("#ig-face-preview-img").attr("src", datajpg);
-        // eof: Decode image
+        // We're not updating the UI here, because memory buffer runs out. Decode code is performed in the API method itself.
       });
     }
 
@@ -408,10 +421,10 @@
      *   @param callback callback in the form of (err, resp) that will be called upon completion
      */
     function apiShowFilePreview(key, callback) {
-      //
-      // if (!key) {
-      //   return;
-      // }
+
+      if (!key) {
+        return;
+      }
 
       var params = {
         "key": key
@@ -422,8 +435,21 @@
       xmlHttp.onreadystatechange = function() {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
           var response = JSON.parse(xmlHttp.responseText);
-          console.log("Done");
-          callback(response.err, response.resp);
+
+          // Note: We're processing the response here, rather than in the callback. This is because calling the callback with the image buffer runs out memory.
+          if (response.err) {
+            alert("Cannot load image. Try refreshing the page. Error message: " + JSON.stringify(err));
+            return;
+          }
+
+          // Decode image
+          var b64encoded = btoa(String.fromCharCode.apply(null, response.resp.Body.data));
+          var datajpg = "data:image/jpg;base64," + b64encoded;
+
+          $("#ig-modal-file-preview-image").attr("src", datajpg);
+          // eof: Decode image
+
+          callback(null, null); // Call callback, but we don't do anything there.
         }
       }
       xmlHttp.open("POST", "/file/preview", true);
