@@ -19,16 +19,17 @@ const Raspistill                              = require('node-raspistill').Raspi
 
 const faceCollection                          = 'photos';
 const s3bucket                                = 'ignationbucket';
+const s3bucketTempPhotos                      = 'ignationbuckettempphotos'
 
 const camera                                  = new Raspistill({
-                                                outputDir: __dirname,
-                                                fileName: 'image',
-                                                encoding: 'jpg',
-                                                verticalFlip: true,
-                                                noPreview: true,
-                                                width: 500,
-                                                height: 680
-                                              });
+  outputDir: __dirname,
+  fileName: 'image',
+  encoding: 'jpg',
+  verticalFlip: true,
+  noPreview: true,
+  width: 500,
+  height: 680
+});
 
 const NOTIFICATION_SIGN_IN_USER                 = "IG_SIGN_IN_USER";
 const NOTIFICATION_SIGN_IN_USER_RESULT          = "IG_SIGN_IN_USER_RESULT";
@@ -48,103 +49,101 @@ var message, msgcontent;
 
 // eof: Vars and constants
 
+
+// Creates a key consisting of a unique identifier, and if a name specified it will be included.
+function createKey(name) {
+
+  var now = new Date();
+  var id = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, ""); // Change to PYYMMDDHHMMSS
+  var key = id;
+
+  if (name) {
+    var nameEncoded = Buffer.from(name).toString('base64').replace(/=/), "";
+    nameEncoded = nameEncoded.replace("=", "");
+    var key = id + nameEncoded;
+  } 
+
+  return key;
+}
+
 module.exports = NodeHelper.create({
   // Override start method.
   start: function() {
     console.log("Starting node helper for: " + this.name);
   },
- 
+
   // callback(err, resp);
-  awsUploadFile: function(callback) {
+  awsUploadFile: function(key, bucket, callback) {
+    var fileStream = fs.createReadStream(__dirname + '/image.jpg');
 
+    var params = {
+      Bucket: bucket,
+      Key: key,
+      Body: fileStream
+    };
+    var uploadPromise = s3.upload(params).promise();
+    uploadPromise.then((response) => {
+      callback(null, response);
+      return;
 
-
-      console.log("In awsUploadFile");
-      var fileStream = fs.createReadStream(__dirname + '/image.jpg');
-      var now = new Date();
-      var key = 'P' + now.toISOString().slice(2, 19).replace(/-|T|:/g, "") + '.jpg'; // Change to PYYMMDDHHMMSS
-      var params = {
-        Bucket: s3bucket,
-        Key: key,
-        Body: fileStream
-      };
-console.log("In awsUploadFile before promise");
-      var uploadPromise = s3.upload(params).promise();
-
-	console.log("In awsUploadFile after promise");
-      uploadPromise.then((response) => {
-console.log("In awsUploadFile response");
-        callback(null, response);
-        return;
-
-      }). catch((err) => {
-console.log("ERROR should be duplicate " + err);
-        callback(err, null);
-        return;
-      });
+    }). catch((err) => {
+      callback(err, null);
+      return;
+    });
   },
 
   awsRekognitionSearchFacesByImage: function(key, callback) {
-      console.log("in awsRekognitionSearchFacesByImage with key : " + key);
-      let params = {
-        CollectionId: faceCollection,
-        Image: {
-          S3Object: {
-            Bucket: s3bucket,
-            Name: key
-          }
-        },
-        FaceMatchThreshold: 80,
-        MaxFaces: 1
-      };
+    console.log("in awsRekognitionSearchFacesByImage with key : " + key);
+    let params = {
+      CollectionId: faceCollection,
+      Image: {
+        S3Object: {
+          Bucket: s3bucketTempPhotos,
+          Name: key
+        }
+      },
+      FaceMatchThreshold: 80,
+      MaxFaces: 1
+    };
 
-      rekognition.searchFacesByImage(params, function(err, resp) {
-	if (err) {
-		console.log("searchface error : " + err);
-	}
-          callback(err, resp);
-          return;
-      });
+    rekognition.searchFacesByImage(params, function(err, resp) {
+     if (err) {
+      console.log("searchface error : " + err);
+    }
+    callback(err, resp);
+    return;
+  });
   },
 
   awsDeleteBucketObject: function (key, callback) {
-      console.log("In awsDeleteBucketObject with key : " + key);
-      let params = {
-          Bucket: s3bucket,
-          Key: key    
-      }
+    console.log("In awsDeleteBucketObject with key : " + key);
+    let params = {
+      Bucket: s3bucket,
+      Key: key    
+    }
 
-      s3.deleteObject(params, function(err, resp) {
-          callback(err, resp);
-	  return;
-      });
+    s3.deleteObject(params, function(err, resp) {
+      callback(err, resp);
+      return;
+    });
   },
 
-  awsIndexFace: function (key, name, callback) {
-      console.log("in awsIndexFace with key : " + key);
- console.log("in awsIndexFace with name : " + name);
-
-      console.log("key before encode " + key);
-      var nameEncoded = Buffer.from(name).toString('base64');
-      console.log("Name : " + name + " and encoded : " + nameEncoded);
-      console.log("Name decoded again : " + Buffer.from(nameEncoded,'base64').toString());
-
-      const params = {
-        CollectionId: faceCollection,
-        ExternalImageId: key + nameEncoded,
-        DetectionAttributes: [],
-        Image: {
-          S3Object: {
-            Bucket: s3bucket,
-            Name: key
-          }
+  awsIndexFace: function (key, callback) {
+    const params = {
+      CollectionId: faceCollection,
+      ExternalImageId: key,
+      DetectionAttributes: [],
+      Image: {
+        S3Object: {
+          Bucket: s3bucket,
+          Name: key
         }
-      };
+      }
+    };
 
-      rekognition.indexFaces(params, function(err, resp) {
-console.log("Annick : error is : " + err);
-          callback(err, resp);
-      });
+    rekognition.indexFaces(params, function(err, resp) {
+      callback(err, resp);
+    });
   },
 
 
@@ -153,12 +152,10 @@ console.log("Annick : error is : " + err);
    *   A notification from the client was received.
    *
    */
-  socketNotificationReceived: function(notification, payload) {
+   socketNotificationReceived: function(notification, payload) {
     // Take photo notification
     var self = this;
     if (notification === NOTIFICATION_SIGN_IN_USER) { // Sign in user
-      
-
 
       // Send status update
       self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
@@ -179,7 +176,7 @@ console.log("Annick : error is : " + err);
         });
 
         // AWS SDK
-        self.awsUploadFile(function(errUpload, respUpload) {
+        self.awsUploadFile(createKey(), s3bucketTempPhotos, function(errUpload, respUpload) {
           if (errUpload) {
             self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
               "result": null,
@@ -189,31 +186,27 @@ console.log("Annick : error is : " + err);
           }
 
           // Upload succesful, do search faces
-          self.awsRekognitionSearchFacesByImage(respUpload.Key, function(errSearchFace, respSearchFace) {
-            if (errSearchFace) {
-              self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
+          self.awsRekognitionSearchFacesByImage(respUpload.Key, function(errSearchFace, respSearchFace) { // search face
+
+            self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) { // delete file
+              //Ignore error delete image because 
+              if (errDeleteImage) {
+                console.log(errDeleteImage);
+              }
+
+              if (errSearchFace) {
+                self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": null,
                   "error": errSearchFace
-                });
-//If face was recognized then delete the image from the bucket
-            self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
-              if (errDeleteImage) {
-                console.log("ANNICK delete error:" + errDeleteImage);
+                });      
+
                 return;
               }
-            }); //eof: deleteImage 
 
-                return;
-            }
-         
-
-            //If match was found, send socket notification with the name of the person 
-            if (respSearchFace.FaceMatches.length > 0) { // Matches
+              //If match was found, send socket notification with the name of the person 
+              if (respSearchFace.FaceMatches.length > 0) { // Matches
                 var face = respSearchFace.FaceMatches[0].Face;
                 var faceId = face.ExternalImageId; 
-console.log("faceid is " + faceId);
-console.log("faceId.substring(17) " + faceId.substring(17));
-console.log("Buffer.from(faceId.substring(17) " + Buffer.from(faceId.substring(17)));
 
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
@@ -223,15 +216,8 @@ console.log("Buffer.from(faceId.substring(17) " + Buffer.from(faceId.substring(1
                   },
                   "error": null
                 });
-//If face was recognized then delete the image from the bucket
-            self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) {
-              if (errDeleteImage) {
-                console.log("ANNICK delete error:" + errDeleteImage);
                 return;
-              }
-            }); //eof: deleteImage 
-                return;
-            } else { // No matches
+              } else { // No matches
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
                     "faceId": null,
@@ -242,7 +228,10 @@ console.log("Buffer.from(faceId.substring(17) " + Buffer.from(faceId.substring(1
                 });
                 return;
               }
-          }); //eof: searchFaces
+            }); //eof: deleteImage
+
+          }); //eof: searchFaces         
+
         }); //eof: uploadFile
       }).catch((err) => {
         self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
@@ -253,26 +242,59 @@ console.log("Buffer.from(faceId.substring(17) " + Buffer.from(faceId.substring(1
       }); // eof: taking photo //eof: takePhoto
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
-      self.awsIndexFace(payload.key, payload.name, function (errIndexFace, respIndexFace) {
-      console.log("in register user with payload : " + JSON.stringify(payload));
-      
-        if (errIndexFace) {
+
+      var key = createKey(payload.name);
+
+      self.awsUploadFile(key, s3bucket, function(errUpload, respUpload) {
+        if (errUpload) {
           self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
             "result": null,
-            "error": errIndexFace
-          });
-          return;
-        } else {
-
-          self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
-            "result": {
-              "externalImageId": payload.name
-            },
-            "error": null
+            "error": errUpload
           });
           return;
         }
-      });
+
+        // Step 2: index face
+        self.awsIndexFace(key, function (errIndexFace, respIndexFace) {
+          console.log("in register user with payload : " + JSON.stringify(payload));
+
+          if (errIndexFace) {
+            self.awsDeleteBucketObject(key, function(errDeleteImage, respDeleteImage) { // delete file because we couldnt index it.
+
+              self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
+                "result": null,
+                "error": errIndexFace
+              });
+              return;
+            });
+          } else {
+
+            self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
+              "result": {
+                "externalImageId": key // We will send back the key to the user. The key consits of a unique identifier + encoded name. 
+              },
+              "error": null
+            });
+            return;
+          }
+        }); // eof index face
+      }); // eof: upload file.
+
+    } // eof: register user
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     } // Eof: Register user
 
   }, // eof: socketNotificationReceived

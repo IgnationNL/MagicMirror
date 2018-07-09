@@ -216,7 +216,9 @@ Module.register("ignationfacerec", {
 
         } else { // Returning user
           console.log("original message");
-          this.config.statusMessage = "Welcome " + atob(payload.result.faceId);
+
+          var name = atob(payload.result.faceId.substring(13));
+          this.config.statusMessage = "Welcome " + name;
           this.config.statusMessageLastUpdateTime = (new Date()).getTime();
           ledAction = NOTIFICATION_IG_LED_CONFIRMED;
         }
