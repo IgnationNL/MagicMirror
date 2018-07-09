@@ -19,7 +19,6 @@ const Raspistill                              = require('node-raspistill').Raspi
 
 const faceCollection                          = 'photos';
 const s3bucket                                = 'ignationbucket';
-const s3bucketTempPhotos                      = 'ignationbuckettempphotos'
 
 const camera                                  = new Raspistill({
   outputDir: __dirname,
@@ -58,7 +57,7 @@ function createKey(name) {
   var key = id;
 
   if (name) {
-    var nameEncoded = Buffer.from(name).toString('base64').replace(/=/), "";
+    var nameEncoded = Buffer.from(name).toString('base64').replace(/=/, "");
     nameEncoded = nameEncoded.replace("=", "");
     var key = id + nameEncoded;
   } 
@@ -73,11 +72,11 @@ module.exports = NodeHelper.create({
   },
 
   // callback(err, resp);
-  awsUploadFile: function(key, bucket, callback) {
+  awsUploadFile: function(key, callback) {
     var fileStream = fs.createReadStream(__dirname + '/image.jpg');
 
     var params = {
-      Bucket: bucket,
+      Bucket: s3bucket,
       Key: key,
       Body: fileStream
     };
@@ -98,7 +97,7 @@ module.exports = NodeHelper.create({
       CollectionId: faceCollection,
       Image: {
         S3Object: {
-          Bucket: s3bucketTempPhotos,
+          Bucket: s3bucket,
           Name: key
         }
       },
@@ -176,7 +175,8 @@ module.exports = NodeHelper.create({
         });
 
         // AWS SDK
-        self.awsUploadFile(createKey(), s3bucketTempPhotos, function(errUpload, respUpload) {
+        var key = createKey(null);
+        self.awsUploadFile(key, function(errUpload, respUpload) {
           if (errUpload) {
             self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
               "result": null,
@@ -186,9 +186,9 @@ module.exports = NodeHelper.create({
           }
 
           // Upload succesful, do search faces
-          self.awsRekognitionSearchFacesByImage(respUpload.Key, function(errSearchFace, respSearchFace) { // search face
+          self.awsRekognitionSearchFacesByImage(key, function(errSearchFace, respSearchFace) { // search face
 
-            self.awsDeleteBucketObject(respUpload.Key, function(errDeleteImage, respDeleteImage) { // delete file
+            self.awsDeleteBucketObject(key, function(errDeleteImage, respDeleteImage) { // delete file
               //Ignore error delete image because 
               if (errDeleteImage) {
                 console.log(errDeleteImage);
@@ -210,8 +210,7 @@ module.exports = NodeHelper.create({
 
                 self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
                   "result": {
-                    "faceId": Buffer.from(faceId.substring(17), 'base64').toString(),
-                    "key": respUpload.Key,
+                    "faceId": faceId,
                     "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
                   },
                   "error": null
@@ -240,12 +239,13 @@ module.exports = NodeHelper.create({
         });
         return;
       }); // eof: taking photo //eof: takePhoto
+      
     } // eof: Sign in user
     else if (notification === NOTIFICATION_REGISTER_USER) { // Register user
 
       var key = createKey(payload.name);
 
-      self.awsUploadFile(key, s3bucket, function(errUpload, respUpload) {
+      self.awsUploadFile(key, function(errUpload, respUpload) {
         if (errUpload) {
           self.sendSocketNotification(NOTIFICATION_REGISTER_USER_RESULT, {
             "result": null,
@@ -282,20 +282,6 @@ module.exports = NodeHelper.create({
 
     } // eof: register user
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    } // Eof: Register user
 
   }, // eof: socketNotificationReceived
 });

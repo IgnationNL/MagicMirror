@@ -234,7 +234,8 @@ Module.register("ignationfacerec", {
       if (payload.error) {
         this.config.statusMessage = "Something went wrong registering. Please try again.";
       } else {
-        this.config.statusMessage = "Thanks for registering " + payload.result.externalImageId;
+        var name = atob(payload.result.externalImageId.substring(13));
+        this.config.statusMessage = "Thanks for registering " + name;
         this.config.statusMessageLastUpdateTime = (new Date()).getTime();
 
         this.sendNotification(NOTIFICATION_IG_LED_END_INPUT_REQUIRED, null); // End the input required LED animation first.
