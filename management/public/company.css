@@ -54,10 +54,13 @@ body{
   border: 1px solid #ff9130;
 }
 
+<<<<<<< HEAD
 #ig-privacy-button{ /* delete user */
   margin-right: 10px;
 }
 
+=======
+>>>>>>> 36f1016015f8e0113191ea3a4589bae004719fe4
 .btn-outline-primary{ /* privacy/preview button */
   color:#008cbe;
   border: 1px solid #008cbe;
