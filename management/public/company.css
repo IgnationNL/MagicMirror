@@ -1,0 +1,127 @@
+body{
+  font-family: proxima_novaregular, Verdana, sans-serif;;
+  color: #515151;
+}
+
+.table-bordered th, .table-bordered td {
+    border: 1px solid #e2e2e2;
+}
+
+.table td{
+  background:#f7f7f7;
+}
+
+/* top bar nav */
+.navbar-brand{
+  font-weight: 600;
+  color:#515151 !important;
+}
+.navbar{
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.05), 0 4px 10px 0 rgba(0, 0, 0, 0.05);
+}
+.form-inline{
+  margin-top: 15px;
+}
+
+/* top bar nav buttons*/
+#ig-add-button{ /* add new user */
+  margin-right: 10px;
+  color: #fff;
+  background: #73b443;
+  border: 1px solid #73B443;
+}
+
+#ig-add-button:hover{ /* add new user hover */
+  background:#8bd653;
+  border: 1px solid #8bd653;
+}
+
+#ig-delete-button:disabled{ /* delete user disabled */
+  color:#515151;
+  background:#fff;
+  border: 1px solid #515151;
+}
+
+#ig-delete-button{ /* delete user */
+  margin-right: 10px;
+  color:#fff;
+  background: #e56c00;
+  border: 1px solid #e56c00;
+}
+
+#ig-delete-button:hover{ /* delete user hover */
+  background: #ff9130;
+  border: 1px solid #ff9130;
+}
+
+#ig-privacy-button{ /* delete user */
+  margin-right: 10px;
+}
+
+.btn-outline-primary{ /* privacy/preview button */
+  color:#008cbe;
+  border: 1px solid #008cbe;
+}
+
+.btn-outline-primary:hover{ /* privacy/preview button hover */
+  color:#fff;
+  background:#008cbe;
+    border: 1px solid #008cbe;
+}
+
+/* delete user card */
+#ig-modal-delete-confirmation-title{
+  font-weight: 600;
+}
+
+#ig-btn-close{ /* close button */
+  color: #fff;
+  background:#c6c6c6;
+  border:1px solid #c6c6c6;
+}
+
+#ig-btn-close:hover{ /* close button hover */
+  color: #fff;
+  background:#515151;
+}
+
+#ig-btn-delete-yes{ /* confirm delete button */
+  color: #fff;
+  background:#e56c00;
+  border:1px solid #e56c00;
+}
+
+#ig-btn-delete-yes:hover{ /* confirm delete button hover */
+  background:#ff9130;
+  border:1px solid #ff9130;
+}
+
+/* create new user */
+#ig-modal-create-title{
+  font-weight: 600;
+}
+
+#ig-btn-create{ /* confirm button */
+  color: #fff;
+  background: #73b443;
+  border: 1px solid #73B443;
+}
+#ig-btn-create:hover{ /* confirm button */
+  background:#8bd653;
+  border: 1px solid #8bd653;
+}
+
+/* privacy page */
+#ig-modal-privacy-notice-title{
+  font-weight: 600;
+}
+
+#ig-modal-file-preview-title{
+  font-weight: 600;
+}
+
+/* active page */
+.page-item.active .page-link{
+  background-color:#008cbe;
+  border-color:#008cbe;
+}
