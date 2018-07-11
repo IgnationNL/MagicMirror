@@ -33,14 +33,14 @@ const ejs = require("ejs");
 passport.use(new Strategy(
 	function(username, password, done) {
 		db.users.findByUsername(username, function(err, user) {
-			if (err) { 
-				return done(err); 
+			if (err) {
+				return done(err);
 			}
-			if (!user) { 
+			if (!user) {
 				return done(null, false, {message: "Incorrect username"});
 			}
-			if (user.password != password) { 
-				return done(null, false, {message: "Incorrect password"}); 
+			if (user.password != password) {
+				return done(null, false, {message: "Incorrect password"});
 			}
 			return done(null, user);
 		});
@@ -177,7 +177,7 @@ app.listen(appEnv.port, '0.0.0.0', function() {
  *
  */
  app.get('/login',
- 	function(req, res){ 		
+ 	function(req, res){
  		res.render("login.ejs",  {message: req.flash('error'), title: "Login"});
  	});
 
@@ -368,7 +368,7 @@ app.post("/file/preview", function(req, res) { // Get file preview
 
 		return;
 	}
-	awsGetFile(req.body.key, function(err, resp) {
+	awsGetFileUrl(req.body.key, function(err, resp) {
 		if (err) {
 			err = "Failed to retrieve file from AWS."
 		}
@@ -469,20 +469,23 @@ app.delete("/files", function(req, res) { // Delete files
  	});
  }
 
-/*** awsGetFile() ***
+/*** awsGetFileURL() ***
  *
- *   Retrieves the object specified by the key
+ *   Retrieves an url which is valid for 30 seconds to the file
  *
  *   @param key key of the file to be retrieved.
  *   @param callback callback in the form of (err, resp) that will be called upon completion
  */
- function awsGetFile(key, callback) {
- 	s3.getObject({
- 		Bucket: AWSBucketIgnation,
- 		Key: key
- 	}, function(err, data) {
- 		callback(err, data);
- 	});
+ function awsGetFileUrl(key, callback) {
+
+	 var params = {
+  		Bucket: AWSBucketIgnation,
+  		Key: key,
+			Expires: 30
+  	};
+		var url = s3.getSignedUrl('getObject', params, function(err, url) {
+			callback(err, url);
+		});
  }
 
 /*** awsDeleteFiles() ***

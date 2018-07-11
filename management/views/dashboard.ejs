@@ -15,7 +15,6 @@
   <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/locale/en.js"></script>
 
   <!-- eof: Load scripts -->
 
@@ -429,7 +428,13 @@
       $('#ig-modal-file-preview').modal('show');
 
       apiShowFilePreview(key, function(err, resp) {
-        // We're not updating the UI here, because memory buffer runs out. Decode code is performed in the API method itself.
+        // Note: We're processing the response here, rather than in the callback. This is because calling the callback with the image buffer runs out memory.
+        if (err) {
+          alert("Cannot load image. Try refreshing the page. Error message: " + JSON.stringify(err));
+          return;
+        }
+
+        $("#ig-modal-file-preview-image").attr("src", resp);
       });
     }
 
@@ -506,21 +511,7 @@
       xmlHttp.onreadystatechange = function() {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
           var response = JSON.parse(xmlHttp.responseText);
-
-          // Note: We're processing the response here, rather than in the callback. This is because calling the callback with the image buffer runs out memory.
-          if (response.err) {
-            alert("Cannot load image. Try refreshing the page. Error message: " + JSON.stringify(err));
-            return;
-          }
-
-          // Decode image
-          var b64encoded = btoa(String.fromCharCode.apply(null, response.resp.Body.data));
-          var datajpg = "data:image/jpg;base64," + b64encoded;
-
-          $("#ig-modal-file-preview-image").attr("src", datajpg);
-          // eof: Decode image
-return;
-          callback(null, null); // Call callback, but we don't do anything there.
+          callback(response.err, response.resp);
         }
       }
       xmlHttp.open("POST", "/file/preview", true);
