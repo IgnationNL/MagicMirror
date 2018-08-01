@@ -28,7 +28,6 @@ Module.register("ignationfacerec", {
     statusMessage: "Ready to check-in",
     statusMessageLastUpdateTime: null,
     isInRegisterMode: false,
-    imageKey: null,
   },
 
   /*** start() ***
@@ -103,6 +102,7 @@ Module.register("ignationfacerec", {
 	handleEnterKeyPress: function() {
 		if (this.config.isInRegisterMode) { // User needs to register before continue.
 			var name = document.getElementById("ignationfacerec-input-name").value;
+      this.config.name = name;
 
 			if (name.toLowerCase === "cancel") { // Cancel registration.
 				this.config.isInRegisterMode = false;
@@ -117,8 +117,7 @@ Module.register("ignationfacerec", {
 			this.sendNotification(NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR, null); // Notify LED
 
 			this.sendSocketNotification(NOTIFICATION_REGISTER_USER, {
-				"name": name,
-				"key": this.config.imageKey
+				"name": name
 			});
 		} else {
 			this.config.statusMessage = "Please wait";
@@ -210,7 +209,6 @@ Module.register("ignationfacerec", {
       } else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE) { // Signing in is complete
         if (payload.result.faceId === null) { // Unknown user
           this.config.statusMessage = "Welcome. Please enter your name and press enter to complete.";
-          this.config.imageKey = payload.result.key;
           this.config.isInRegisterMode = true;
           ledAction = NOTIFICATION_IG_LED_INPUT_REQUIRED;
 
@@ -232,10 +230,10 @@ Module.register("ignationfacerec", {
 
       var ledAction = NOTIFICATION_IG_LED_ERROR; // Default action
       if (payload.error) {
+        console.log(payload.error);
         this.config.statusMessage = "Something went wrong registering. Please try again.";
       } else {
-        var name = atob(payload.result.externalImageId.substring(13));
-        this.config.statusMessage = "Thanks for registering " + name;
+        this.config.statusMessage = "Thanks for registering " + this.config.name;
         this.config.statusMessageLastUpdateTime = (new Date()).getTime();
 
         this.sendNotification(NOTIFICATION_IG_LED_END_INPUT_REQUIRED, null); // End the input required LED animation first.
@@ -243,7 +241,6 @@ Module.register("ignationfacerec", {
         ledAction = NOTIFICATION_IG_LED_CONFIRMED;
       }
       this.config.isInRegisterMode = false;
-      this.config.imageKey = null;
 
       this.updateDom();
       this.sendNotification(ledAction, null); // Update LED

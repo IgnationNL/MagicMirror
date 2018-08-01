@@ -4,15 +4,12 @@
   "description": "Ignation Face Recognition module for Magic Mirror",
   "homepage": "https://ignation.io",
   "dependencies": {
-    "aws-sdk": "latest",
     "fs": "latest",
     "jimp": "latest",
     "node-raspistill": "0.0.14",
     "pi-camera": "^1.0.1",
-    "qrcode-reader": "latest",
     "raspicam": "^0.2.14",
     "serialport": "^6.2.0",
     "uuid": "latest",
-    "vcard-parser": "latest"
   }
 }
