@@ -95,29 +95,13 @@ module.exports = NodeHelper.create({
               return;
             }
 
-            //If match was found, send socket notification with the name of the person
-            if (resp.FaceMatches.length > 0) { // Matches
-              var face = resp.FaceMatches[0].Face;
-              var faceId = face.ExternalImageId;
-
-              self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
-                "result": {
-                  "faceId": faceId,
-                  "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
-                },
-                "error": null
-              });
-              return;
-            } else { // No matches
-              self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
-                "result": {
-                  "faceId": null,
-                  "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
-                },
-                "error": null
-              });
-              return;
-            }
+            self.sendSocketNotification(NOTIFICATION_SIGN_IN_USER_RESULT, {
+              "result": {
+                "result": resp,
+                "status": NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE
+              },
+              "error": null
+            });
           }
         });
         var form = req.form();

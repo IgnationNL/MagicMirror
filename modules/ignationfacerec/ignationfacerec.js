@@ -207,15 +207,14 @@ Module.register("ignationfacerec", {
         this.config.statusMessage = "Thank you. Please wait.";
         ledAction = NOTIFICATION_IG_LED_START_ACTIVITY_INDICATOR;
       } else if (payload.result.status === NOTIFICATION_SIGN_IN_USER_RESULT_STATUS_DONE) { // Signing in is complete
-        if (payload.result.faceId === null) { // Unknown user
+        if (payload.result.result.key === null) { // Unknown user
           this.config.statusMessage = "Welcome. Please enter your name and press enter to complete.";
           this.config.isInRegisterMode = true;
           ledAction = NOTIFICATION_IG_LED_INPUT_REQUIRED;
 
         } else { // Returning user
-          console.log("original message");
 
-          var name = atob(payload.result.faceId.substring(13));
+          var name = payload.result.result.name;
           this.config.statusMessage = "Welcome " + name;
           this.config.statusMessageLastUpdateTime = (new Date()).getTime();
           ledAction = NOTIFICATION_IG_LED_CONFIRMED;
