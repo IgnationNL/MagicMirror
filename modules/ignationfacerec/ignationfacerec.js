@@ -28,6 +28,7 @@ Module.register("ignationfacerec", {
     statusMessage: "Ready to check-in",
     statusMessageLastUpdateTime: null,
     isInRegisterMode: false,
+    showCard: false,
   },
 
   /*** start() ***
@@ -150,7 +151,39 @@ Module.register("ignationfacerec", {
       wrapper.id = "ignationfacerec-wrapper";
       wrapper.appendChild(status);
       wrapper.appendChild(textInput);
+    } else if (this.config.showCard) {
+        var card = document.createElement("div");
+        card.id = "ignationfacerec-card";
+        var img = document.createElement("img");
+        img.src = "modules/ignationfacerec/img/normaal_man.png";
+
+        var parGreen = document.createElement("p");
+        parGreen.className = "green";
+        var textGreen = document.createTextNode("Je bent aangemeld!");
+        parGreen.appendChild(textGreen); 
+
+        var parGeneral = document.createElement("p");
+        var textGeneral = document.createTextNode("U wordt zo snel mogelijk opgehaald voor uw afspraak.");
+        parGeneral.appendChild(textGeneral); 
+
+
+        var parName = document.createElement("p");
+        parName.className = "name";
+        var name = document.createTextNode(this.config.statusMessage);
+        parName.appendChild(name);
+
+        card.appendChild(img);
+        card.appendChild(parName);
+        card.appendChild(parGreen);
+        card.appendChild(parGeneral);
+        wrapper.appendChild(card);
+
+        wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
+        wrapper.id = "ignationfacerec-wrapper";
+
+        this.config.statusMessage = "";
     } else {
+
       var status = document.createTextNode(this.config.statusMessage);
 
       wrapper.className = this.config.classes ? this.config.classes : "thin medium bright";
@@ -181,6 +214,7 @@ Module.register("ignationfacerec", {
   socketNotificationReceived: function(notification, payload) {
     Log.info("socket notification received: " + notification);
 
+    this.config.showCard = false;
     if (notification === NOTIFICATION_SIGN_IN_USER_RESULT) { // Sign in result
 
       if (payload.error) { // Error
@@ -215,9 +249,10 @@ Module.register("ignationfacerec", {
         } else { // Returning user
 
           var name = payload.result.result.name;
-          this.config.statusMessage = "Welcome " + name;
+          this.config.statusMessage = name;
           this.config.statusMessageLastUpdateTime = (new Date()).getTime();
           ledAction = NOTIFICATION_IG_LED_CONFIRMED;
+          this.config.showCard = true;
         }
       }
 
