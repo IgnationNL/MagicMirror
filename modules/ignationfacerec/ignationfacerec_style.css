@@ -25,7 +25,6 @@ input:focus{
 }
 
 #ignationfacerec-card {
-  border: 1px solid;
   width: 400px;
   height: 300px;
   margin: auto;
@@ -46,6 +45,7 @@ input:focus{
   text-align: center;
   font-weight: bold;
   margin: 0px;
+  margin-bottom: 10px;
 }
 
 #ignationfacerec-card .green {
@@ -57,7 +57,7 @@ input:focus{
 #ignationfacerec-card .name {
   margin-top: 10px;
   padding-top: : 10px;
-  padding-bottom: 20px;
+  padding-bottom: 10px;
   font-size: 40px;
   font-weight: 600;
 }

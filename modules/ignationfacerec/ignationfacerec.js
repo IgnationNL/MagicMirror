@@ -157,6 +157,10 @@ Module.register("ignationfacerec", {
         var img = document.createElement("img");
         img.src = "modules/ignationfacerec/img/normaal_man.png";
 
+        var parCompany = document.createElement("p");
+        var company = document.createTextNode(this.config.company);
+        parCompany.appendChild(company);
+
         var parGreen = document.createElement("p");
         parGreen.className = "green";
         var textGreen = document.createTextNode("Je bent aangemeld!");
@@ -166,7 +170,6 @@ Module.register("ignationfacerec", {
         var textGeneral = document.createTextNode("U wordt zo snel mogelijk opgehaald voor uw afspraak.");
         parGeneral.appendChild(textGeneral); 
 
-
         var parName = document.createElement("p");
         parName.className = "name";
         var name = document.createTextNode(this.config.statusMessage);
@@ -174,6 +177,7 @@ Module.register("ignationfacerec", {
 
         card.appendChild(img);
         card.appendChild(parName);
+        card.appendChild(parCompany);
         card.appendChild(parGreen);
         card.appendChild(parGeneral);
         wrapper.appendChild(card);
@@ -247,12 +251,15 @@ Module.register("ignationfacerec", {
           ledAction = NOTIFICATION_IG_LED_INPUT_REQUIRED;
 
         } else { // Returning user
-
           var name = payload.result.result.name;
           this.config.statusMessage = name;
           this.config.statusMessageLastUpdateTime = (new Date()).getTime();
           ledAction = NOTIFICATION_IG_LED_CONFIRMED;
           this.config.showCard = true;
+          this.config.company = "";
+          if (payload.result.result.company) {
+            this.config.company = payload.result.result.company;
+          }
         }
       }
 
