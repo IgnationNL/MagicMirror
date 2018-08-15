@@ -105,7 +105,7 @@ Module.register("ignationfacerec", {
 			var name = document.getElementById("ignationfacerec-input-name").value;
       this.config.name = name;
 
-			if (name.toLowerCase === "cancel") { // Cancel registration.
+			if (name.toLowerCase() === "cancel") { // Cancel registration.
 				this.config.isInRegisterMode = false;
 				this.config.statusMessage = "Cancelled by user";
 				this.config.statusMessageLastUpdateTime = (new Date()).getTime();
